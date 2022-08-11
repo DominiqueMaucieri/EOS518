@@ -1,0 +1,91 @@
+---
+title: "Analyzing Glider Data"
+subtitle: "EOS 518"
+author: '[Dominique Maucieri](https://www.dominiquemaucieri.com)'
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+---
+
+```{r installing packages, include=FALSE}
+
+#To clear the workspace
+rm(list = ls(all = T))
+
+#My theme
+theme_DOM <- function () {
+  theme_classic(base_size = 12) + 
+    theme(
+    panel.border = element_rect(colour = "black", fill = NA),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(colour = "black"),
+    axis.title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 12, face = "plain"),
+    legend.text = element_text(size = 12, face = "plain"),
+    legend.title = element_text(size = 14, face = "bold")
+  )
+}
+
+# install.packages("rerddap")
+library("rerddap")
+
+library("akima")
+library("dplyr")
+library("ggplot2")
+library("mapdata")
+library("ncdf4")
+library("plot3D")
+library("lubridate")
+library("viridis")
+library("scales")
+
+```
+
+```{r getting glider data, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+urlBase <- "https://gliders.ioos.us/erddap"
+gliderInfo <- info("ce_320-20220720T1429",  url = urlBase)
+glider <- tabledap(gliderInfo, fields = c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature"), 'time>=2022-07-22 20:00:00+00:00', 'time<=2022-07-26 23:00:00+00:00', url = urlBase)
+
+
+glider$longitude <- as.numeric(glider$longitude)
+glider$latitude <- as.numeric(glider$latitude)
+glider$depth <- as.numeric(glider$depth)
+glider$dissolved_oxygen <- as.numeric(glider$dissolved_oxygen)
+
+glider$time2 <- as_datetime(glider$time)
+
+glider$date <- as.Date(glider$time2, format ="%Y-%m-%d")
+
+```
+
+
+```{r depth by DO, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+ggplot(glider, aes(x=longitude, y = latitude)) +
+  geom_point(aes(col = date)) +
+  scale_color_viridis(name='Date', 
+                      trans = "date", 
+                      labels = label_date(format = "%Y-%m-%d") ) + 
+  theme_DOM()
+
+```
+
+
+```{r depth by DO, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+glider$dissolved_oxygen_2 <- glider$dissolved_oxygen / 43.57
+
+ggplot(glider, aes(y=-depth, x = dissolved_oxygen_2)) +
+  geom_point(aes(col = date)) +
+  scale_color_viridis(name='Date', 
+                      trans = "date", 
+                      labels = label_date(format = "%Y-%m-%d") ) + 
+  theme_DOM()
+
+```
+
+
