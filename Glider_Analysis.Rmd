@@ -63,7 +63,7 @@ glider$date <- as.Date(glider$time2, format ="%Y-%m-%d")
 ```
 
 
-```{r depth by DO, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+```{r path map, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
 ggplot(glider, aes(x=longitude, y = latitude)) +
   geom_point(aes(col = date)) +
