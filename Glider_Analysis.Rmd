@@ -94,10 +94,8 @@ simple_map <- ggplot(data = world) +
   geom_sf() +
   annotation_scale(location = "bl", width_hint = 0.5) +
   annotation_north_arrow(
-    location = "bl",
+    location = "tl",
     which_north = "true",
-    pad_x = unit(0.75, "in"),
-    pad_y = unit(0.5, "in"),
     style = north_arrow_fancy_orienteering
   ) +
   coord_sf(
