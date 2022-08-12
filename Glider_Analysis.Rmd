@@ -118,11 +118,11 @@ glider <- rbind(glider_320, glider_383)
 
 shore <- c(-124.19208, 47.15073)
 
-max_lat_map <- max(c(glider$latitude, shore[2])) + 0.25
-min_lat_map <- min(c(glider$latitude, shore[2])) - 0.25
+max_lat_map <- max(c(glider$latitude, shore[2])) + 1
+min_lat_map <- min(c(glider$latitude, shore[2])) - 1
 
-max_long_map <- max(c(glider$longitude, shore[1])) + 0.25
-min_long_map <- min(c(glider$longitude, shore[1])) - 0.25
+max_long_map <- max(c(glider$longitude, shore[1])) + 1
+min_long_map <- min(c(glider$longitude, shore[1])) - 1
 
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -202,14 +202,14 @@ ggplot(glider, aes(y=-depth, x= distance_km)) +
 
 glider$temperature <- as.numeric(glider$temperature)
 
-ggplot(glider, aes(x=depth, y= temperature)) +
+ggplot(glider, aes(y=depth, x= temperature)) +
   geom_point(aes(col = date)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() +
   facet_wrap(vars(ID), scales = "free_x") + 
-  labs(x ="Depth (m)", y="Temperature")
+  labs(y ="Depth (m)", x="Temperature")
 
 ```
 
@@ -238,7 +238,7 @@ ggplot(glider, aes(x=depth, y=dissolved_oxygen)) +
 ```
 
 
-```{r}
+```{r vancouver island map, warning=FALSE, tidy = TRUE, message=FALSE}
 
 dfo_k999_nc <- nc_open(here::here("", "dfo_k999.nc"))
 names(dfo_k999_nc$var)
@@ -247,14 +247,54 @@ dfo_k999 <- as.data.frame(matrix(data=NA, nrow=7983, ncol=11))
 colnames(dfo_k999) <- c("Time", "latitude", "longitude", "chlorophyll", "salinity", "depth", "oxygen_concentration", "temperature", "backscatter_700", "cdom", "ID")
 dfo_k999$Time <- dfo_k999_nc[["dim"]][["time"]]$vals
 dfo_k999$Time <- as.POSIXct(dfo_k999$Time, origin = "1970-01-01T00:00:00+00:00")
-dfo_k999$lat <- ncvar_get(dfo_k999_nc, varid = c("latitude"))
-dfo_k999$long <- ncvar_get(dfo_k999_nc, varid = c("longitude"))
+dfo_k999$latitude <- ncvar_get(dfo_k999_nc, varid = c("latitude"))
+dfo_k999$longitude <- ncvar_get(dfo_k999_nc, varid = c("longitude"))
+dfo_k999$chlorophyll <- ncvar_get(dfo_k999_nc, varid = c("chlorophyll"))
+dfo_k999$salinity <- ncvar_get(dfo_k999_nc, varid = c("salinity"))
+dfo_k999$depth <- ncvar_get(dfo_k999_nc, varid = c("depth"))
+dfo_k999$oxygen_concentration <- ncvar_get(dfo_k999_nc, varid = c("oxygen_concentration"))
+dfo_k999$temperature <- ncvar_get(dfo_k999_nc, varid = c("temperature"))
+dfo_k999$backscatter_700 <- ncvar_get(dfo_k999_nc, varid = c("backscatter_700"))
+dfo_k999$cdom <- ncvar_get(dfo_k999_nc, varid = c("cdom"))
+
+dfo_k999$ID <- "k999_deep"
 
 
-ggplot(dfo_k999, aes(x = long, y = lat)) +
-  geom_point() +
-  labs(x = "Longitude", y = "Latitude") +
-  theme_DOM()
+dfo_k999 <- dfo_k999 %>%
+  filter(latitude < 49)
+
+
+max_lat_map_VI <- max(dfo_k999$latitude) + 1.5
+min_lat_map_VI <- min(dfo_k999$latitude) - 1.5
+
+max_long_map_VI <- max(dfo_k999$longitude) + 1
+min_long_map_VI <- min(dfo_k999$longitude) - 1
+
+
+simple_map_VI <- ggplot(data = world) +
+  geom_sf() +
+  annotation_scale(location = "bl", width_hint = 0.5) +
+  annotation_north_arrow(
+    location = "tl",
+    which_north = "true",
+    style = north_arrow_fancy_orienteering
+  ) +
+  coord_sf(
+    xlim = c(min_long_map_VI, max_long_map_VI),
+    ylim = c(min_lat_map_VI, max_lat_map_VI)
+  ) +
+  theme_DOM() +
+  geom_point(
+    data = dfo_k999,
+    aes(
+      x = longitude,
+      y = latitude,
+      color = "red"
+    ),
+    size = 2
+  ) +
+  labs(x = "Longitude", y = "Latitude")
+simple_map_VI
 
 ```
 
