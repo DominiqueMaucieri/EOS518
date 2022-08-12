@@ -323,6 +323,13 @@ dfo_k999$dissolved_oxygen_2 <- dfo_k999$dissolved_oxygen / 43.57
 
 ```
 
+
+```{r save VI glider, include = FALSE}
+
+write.csv(dfo_k999, file = "dfo_k999_clean.csv", row.names = FALSE)
+
+```
+
 ```{r combinging it all, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
 comb_glider <- rbind(glider, dfo_k999)
@@ -462,3 +469,6 @@ ggplot(comb_glider, aes(y=-depth, x=salinity)) +
   labs(y ="Depth", x="Salinity (units?)") 
 
 ```
+
+
+
