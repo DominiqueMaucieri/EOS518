@@ -79,6 +79,8 @@ ggplot(glider_320, aes(x=longitude, y = latitude)) +
 
 glider <- rbind(glider_320)
 
+shore <- c(-124.19208, 47.15073)
+
 max_lat_map <- max(c(glider$latitude, shore[2])) + 0.25
 min_lat_map <- min(c(glider$latitude, shore[2])) - 0.25
 
