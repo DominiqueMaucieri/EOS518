@@ -50,7 +50,7 @@ urlBase <- "https://gliders.ioos.us/erddap"
 glider_320Info <- info("ce_320-20220720T1429",  url = urlBase)
 glider_320 <- tabledap(glider_320Info, fields = c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature", "density"), 'time>=2022-08-03 20:05:54+00:00', 'time<=2022-08-07 11:41:59+00:00', url = urlBase)
 
-glider_320$ID <- "320_shallow"
+glider_320$ID <- "USA_OR_shallow"
 
 
 glider_320$longitude <- as.numeric(glider_320$longitude)
@@ -73,7 +73,7 @@ urlBase <- "https://gliders.ioos.us/erddap"
 glider_383Info <- info("ce_383-20220720T1508",  url = urlBase)
 glider_383 <- tabledap(glider_383Info, fields = c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature", "density"), 'time>=2022-08-06 00:00:00+00:00', 'time<=2022-08-11 19:54:11+00:00', url = urlBase)
 
-glider_383$ID <- "383_deep"
+glider_383$ID <- "USA_OR_deep"
 
 
 glider_383$longitude <- as.numeric(glider_383$longitude)
@@ -118,20 +118,20 @@ ggplot(glider_383, aes(x=longitude, y = latitude)) +
 
 ```{r map with shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider <- rbind(glider_320, glider_383)
+glider_OR <- rbind(glider_320, glider_383)
 
-shore <- c(-124.19208, 47.15073)
+shore_OR <- c(-124.19208, 47.15073)
 
-max_lat_map <- max(c(glider$latitude, shore[2])) + 1
-min_lat_map <- min(c(glider$latitude, shore[2])) - 1
+max_lat_map <- max(c(glider_OR$latitude, shore_OR[2])) + 1
+min_lat_map <- min(c(glider_OR$latitude, shore_OR[2])) - 1
 
-max_long_map <- max(c(glider$longitude, shore[1])) + 1
-min_long_map <- min(c(glider$longitude, shore[1])) - 1
+max_long_map <- max(c(glider_OR$longitude, shore_OR[1])) + 1
+min_long_map <- min(c(glider_OR$longitude, shore_OR[1])) - 1
 
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
-simple_map <- ggplot(data = world) +
+simple_map_OR <- ggplot(data = world) +
   geom_sf() +
   annotation_scale(location = "bl", width_hint = 0.5) +
   annotation_north_arrow(
@@ -145,7 +145,7 @@ simple_map <- ggplot(data = world) +
   ) +
   theme_DOM() +
   geom_point(
-    data = glider,
+    data = glider_OR,
     aes(
       x = longitude,
       y = latitude,
@@ -155,16 +155,15 @@ simple_map <- ggplot(data = world) +
   ) +
   scale_color_manual(values = c("darkblue", "darkgreen")) +
   labs(x = "Longitude", y = "Latitude") +
-  geom_point(aes(x=shore[1], y=shore[2]), colour="red")
-
-simple_map
+  geom_point(aes(x=shore_OR[1], y=shore_OR[2]), colour="red")
+simple_map_OR
 
 ```
 
 
 ```{r profile quick and bad way, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-ggplot(glider, aes(y=-depth, x= time)) +
+ggplot(glider_OR, aes(y=-depth, x= time)) +
   geom_point(aes(col = temperature)) + 
   theme_DOM() +
   scale_color_viridis() +
@@ -176,22 +175,22 @@ ggplot(glider, aes(y=-depth, x= time)) +
 
 ```{r calc distance from shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider$distance <- "Blank"
+glider_OR$distance <- "Blank"
 
-for(i in 1:nrow(glider)){
-  glider$distance[i] <- distm(c(glider$longitude[i], glider$latitude[i]), shore)
+for(i in 1:nrow(glider_OR)){
+  glider_OR$distance[i] <- distm(c(glider_OR$longitude[i], glider_OR$latitude[i]), shore_OR)
 }
 
-glider$distance <- as.numeric(glider$distance)
+glider_OR$distance <- as.numeric(glider_OR$distance)
 
-glider$distance_km <- glider$distance / 1000
+glider_OR$distance_km <- glider_OR$distance / 1000
 
 ```
 
 
 ```{r profile distance from shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-ggplot(glider, aes(y=-depth, x= distance_km)) +
+ggplot(glider_OR, aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = temperature)) + 
   theme_DOM() +
   scale_color_viridis() +
@@ -204,9 +203,9 @@ ggplot(glider, aes(y=-depth, x= distance_km)) +
 
 ```{r depth by temperature, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider$temperature <- as.numeric(glider$temperature)
+glider_OR$temperature <- as.numeric(glider_OR$temperature)
 
-ggplot(glider, aes(y=-depth, x= temperature)) +
+ggplot(glider_OR, aes(y=-depth, x= temperature)) +
   geom_point(aes(col = date)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
@@ -223,9 +222,9 @@ ggplot(glider, aes(y=-depth, x= temperature)) +
 
 ```{r depth by DO, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider$dissolved_oxygen_2 <- glider$dissolved_oxygen / 43.57
+glider_OR$dissolved_oxygen_2 <- glider_OR$dissolved_oxygen / 43.57
 
-ggplot(glider, aes(y=-depth, x=dissolved_oxygen)) +
+ggplot(glider_OR, aes(y=-depth, x=dissolved_oxygen)) +
   geom_point(aes(col = date)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
@@ -258,7 +257,7 @@ dfo_k999$depth <- ncvar_get(dfo_k999_nc, varid = c("depth"))
 dfo_k999$dissolved_oxygen <- ncvar_get(dfo_k999_nc, varid = c("oxygen_concentration"))
 dfo_k999$temperature <- ncvar_get(dfo_k999_nc, varid = c("temperature"))
 dfo_k999$backscatter <- ncvar_get(dfo_k999_nc, varid = c("backscatter_700"))
-dfo_k999$ID <- "k999_deep"
+dfo_k999$ID <- "CAN_VI_deep"
 dfo_k999$density <- ncvar_get(dfo_k999_nc, varid = c("density"))
 dfo_k999$time <- as_datetime(dfo_k999$time)
 dfo_k999$date <- as.Date(dfo_k999$time)
@@ -269,12 +268,114 @@ dfo_k999$backscatter <- as.numeric(dfo_k999$backscatter)
 dfo_k999 <- dfo_k999 %>%
   filter(latitude < 49)
 
+```
 
-max_lat_map_VI <- max(dfo_k999$latitude) + 1.5
-min_lat_map_VI <- min(dfo_k999$latitude) - 1.5
+```{r calc distance from shore dfo_k999, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-max_long_map_VI <- max(dfo_k999$longitude) + 1
-min_long_map_VI <- min(dfo_k999$longitude) - 1
+dfo_k999$distance <- "Blank"
+
+shore_dfo_k999 <- c(-125.67295, 48.99768)
+
+for(i in 1:nrow(dfo_k999)){
+  dfo_k999$distance[i] <- distm(c(dfo_k999$longitude[i], dfo_k999$latitude[i]), shore_dfo_k999)
+}
+
+dfo_k999$distance <- as.numeric(dfo_k999$distance)
+
+dfo_k999$distance_km <- dfo_k999$distance / 1000
+
+dfo_k999$dissolved_oxygen_2 <- dfo_k999$dissolved_oxygen / 43.57
+
+```
+
+
+```{r vancouver island map dfo_bb046, warning=FALSE, tidy = TRUE, message=FALSE, echo=FALSE}
+
+dfo_bb046_nc <- nc_open(here::here("", "dfo_bb046.nc"))
+
+dfo_bb046 <- as.data.frame(matrix(data=NA, nrow=17799, ncol=11))
+colnames(dfo_bb046) <- c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature", "density", "ID")
+dfo_bb046$time <- dfo_bb046_nc[["dim"]][["time"]]$vals
+dfo_bb046$time <- as.POSIXct(dfo_bb046$time, origin = "1970-01-01T00:00:00+00:00")
+dfo_bb046$latitude <- ncvar_get(dfo_bb046_nc, varid = c("latitude"))
+dfo_bb046$longitude <- ncvar_get(dfo_bb046_nc, varid = c("longitude"))
+dfo_bb046$chlorophyll <- ncvar_get(dfo_bb046_nc, varid = c("chlorophyll"))
+dfo_bb046$salinity <- ncvar_get(dfo_bb046_nc, varid = c("salinity"))
+dfo_bb046$depth <- ncvar_get(dfo_bb046_nc, varid = c("depth"))
+dfo_bb046$dissolved_oxygen <- ncvar_get(dfo_bb046_nc, varid = c("oxygen_concentration"))
+dfo_bb046$temperature <- ncvar_get(dfo_bb046_nc, varid = c("temperature"))
+dfo_bb046$backscatter <- ncvar_get(dfo_bb046_nc, varid = c("backscatter_700"))
+dfo_bb046$ID <- "CAN_QC_shallow"
+dfo_bb046$density <- ncvar_get(dfo_bb046_nc, varid = c("density"))
+dfo_bb046$time <- as_datetime(dfo_bb046$time)
+dfo_bb046$date <- as.Date(dfo_bb046$time)
+dfo_bb046$chlorophyll <- as.numeric(dfo_bb046$chlorophyll)
+dfo_bb046$backscatter <- as.numeric(dfo_bb046$backscatter)
+
+dfo_bb046 <- dfo_bb046 %>%
+  filter(longitude < -128.2671 & longitude > -129.75) %>%
+  filter(temperature < 100) %>%
+  filter(time >= "2022-06-16 10:21:57") %>%
+  filter(depth < 300) 
+
+```
+
+```{r path map dfo_k999, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+dfo_k999 <- dfo_k999 %>%
+  filter(time > "2022-08-03 20:47:38" & time < "2022-08-11 20:14:41")
+
+ggplot(dfo_k999, aes(x=longitude, y = latitude)) +
+  geom_point(aes(col = date)) +
+  scale_color_viridis(name='Date', 
+                      trans = "date", 
+                      labels = label_date(format = "%Y-%m-%d") ) + 
+  theme_DOM() + 
+  labs(x ="Longitude", y="Latitude")
+
+```
+
+```{r path map dfo_bb046, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+ggplot(dfo_bb046, aes(x=longitude, y = latitude)) +
+  geom_point(aes(col = date)) +
+  scale_color_viridis(name='Date', 
+                      trans = "date", 
+                      labels = label_date(format = "%Y-%m-%d") ) + 
+  theme_DOM() + 
+  labs(x ="Longitude", y="Latitude")
+
+```
+
+
+```{r calc distance from shore dfo_bb046, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+dfo_bb046$distance <- "Blank"
+
+shore_dfo_bb046 <- c(-128.11844, 51.66574)
+
+for(i in 1:nrow(dfo_bb046)){
+  dfo_bb046$distance[i] <- distm(c(dfo_bb046$longitude[i], dfo_bb046$latitude[i]), shore_dfo_bb046)
+}
+
+dfo_bb046$distance <- as.numeric(dfo_bb046$distance)
+
+dfo_bb046$distance_km <- dfo_bb046$distance / 1000
+
+dfo_bb046$dissolved_oxygen_2 <- dfo_bb046$dissolved_oxygen / 43.57
+
+```
+
+
+```{r map VI, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+glider_VI <- rbind(dfo_bb046, dfo_k999)
+
+max_lat_map_VI <- max(glider_VI$latitude) + 0.5
+min_lat_map_VI <- min(glider_VI$latitude) - 0.5
+
+max_long_map_VI <- max(glider_VI$longitude) + 0.25
+min_long_map_VI <- min(glider_VI$longitude) - 0.25
 
 
 simple_map_VI <- ggplot(data = world) +
@@ -291,48 +392,32 @@ simple_map_VI <- ggplot(data = world) +
   ) +
   theme_DOM() +
   geom_point(
-    data = dfo_k999,
+    data = glider_VI,
     aes(
       x = longitude,
-      y = latitude
+      y = latitude,
+    color = ID
     ),
-    color = "red",
     size = 2
   ) +
-  labs(x = "Longitude", y = "Latitude")
+  labs(x = "Longitude", y = "Latitude")+
+  scale_color_manual(values = c("darkorchid", "lightslateblue")) 
 simple_map_VI
 
 ```
 
 
-```{r calc distance from shore VI, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
-
-glider$distance <- "Blank"
-
-shore_VI <- c(-125.67295, 48.99768)
-
-for(i in 1:nrow(dfo_k999)){
-  dfo_k999$distance[i] <- distm(c(dfo_k999$longitude[i], dfo_k999$latitude[i]), shore)
-}
-
-dfo_k999$distance <- as.numeric(dfo_k999$distance)
-
-dfo_k999$distance_km <- dfo_k999$distance / 1000
-
-dfo_k999$dissolved_oxygen_2 <- dfo_k999$dissolved_oxygen / 43.57
-
-```
 
 
 ```{r save VI glider, include = FALSE}
 
-write.csv(dfo_k999, file = "dfo_k999_clean.csv", row.names = FALSE)
+write.csv(glider_VI, file = "glider_VI_clean.csv", row.names = FALSE)
 
 ```
 
 ```{r combinging it all, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-comb_glider <- rbind(glider, dfo_k999)
+comb_glider <- rbind(glider_OR, glider_VI)
 
 ```
 
@@ -340,11 +425,11 @@ comb_glider <- rbind(glider, dfo_k999)
 
 ```{r map combined, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-max_lat_map_comb <- max(c(comb_glider$latitude, shore[2], shore_VI[2])) + 0.25
-min_lat_map_comb <- min(c(comb_glider$latitude, shore[2], shore_VI[2])) - 0.25
+max_lat_map_comb <- max(c(comb_glider$latitude, shore_OR[2], shore_dfo_k999[2], shore_dfo_k999[2])) + 0.25
+min_lat_map_comb <- min(c(comb_glider$latitude, shore_OR[2], shore_dfo_k999[2], shore_dfo_k999[2])) - 0.25
 
-max_long_map_comb <- max(c(comb_glider$longitude, shore[1], shore_VI[1])) + 0.25
-min_long_map_comb <- min(c(comb_glider$longitude, shore[1], shore_VI[1])) - 0.25
+max_long_map_comb <- max(c(comb_glider$longitude, shore_OR[1], shore_dfo_k999[1], shore_dfo_k999[1])) + 0.25
+min_long_map_comb <- min(c(comb_glider$longitude, shore_OR[1], shore_dfo_k999[1], shore_dfo_k999[1])) - 0.25
 
 
 simple_map_comb <- ggplot(data = world) +
@@ -369,15 +454,18 @@ simple_map_comb <- ggplot(data = world) +
     ),
     size = 2
   ) +
-  scale_color_manual(values = c("darkblue", "darkgreen", "darkorchid")) +
+  scale_color_manual(values = c("darkblue", "darkgreen", "darkorchid", "lightslateblue")) +
   labs(x = "Longitude", y = "Latitude") +
-  geom_point(aes(x=shore[1], y=shore[2]), colour="red") +
-  geom_point(aes(x=shore_VI[1], y=shore_VI[2]), colour="red")
+  geom_point(aes(x=shore_OR[1], y=shore_OR[2]), colour="red") +
+  geom_point(aes(x=shore_dfo_bb046[1], y=shore_dfo_bb046[2]), colour="red")+
+  geom_point(aes(x=shore_dfo_k999[1], y=shore_dfo_k999[2]), colour="red")
 simple_map_comb
 
 ```
 
 ```{r profile distance from shore comb, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=10}
+
+comb_glider$ID <- factor(comb_glider$ID, levels = c("CAN_QC_shallow", "CAN_VI_deep", "USA_OR_deep", "USA_OR_shallow"))
 
 ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = temperature)) + 
@@ -393,13 +481,11 @@ ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
 ```{r depth by temperature comb, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=10}
 
 ggplot(comb_glider, aes(y=-depth, x= temperature)) +
-  geom_point(aes(col = date)) +
-  scale_color_viridis(name='Date', 
-                      trans = "date", 
-                      labels = label_date(format = "%Y-%m-%d") ) + 
+  geom_point(aes(col = distance_km)) +
+  scale_color_viridis() + 
   theme_DOM() +
   facet_wrap(vars(ID), scales = "free_y", ncol = 1) + 
-  labs(y ="Depth (m)", x="Temperature")
+  labs(y ="Depth (m)", x="Temperature", color = "Distance (km)")
 
 ```
 
@@ -408,15 +494,13 @@ ggplot(comb_glider, aes(y=-depth, x= temperature)) +
 ```{r depth by DO comb, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=10}
 
 ggplot(comb_glider, aes(y=-depth, x=dissolved_oxygen)) +
-  geom_point(aes(col = date)) +
-  scale_color_viridis(name='Date', 
-                      trans = "date", 
-                      labels = label_date(format = "%Y-%m-%d") ) + 
+  geom_point(aes(col = distance_km)) +
+  scale_color_viridis()  + 
   theme_DOM() +
   geom_vline(xintercept = 60, color = "red") +
   geom_vline(xintercept = 20, color = "red")+
   facet_wrap(vars(ID), scales = "free_y", ncol = 1) + 
-  labs(y ="Depth", x="Dissolved Oxygen (umol/kg)") +
+  labs(y ="Depth", x="Dissolved Oxygen (umol/kg)", color = "Distance (km)") +
   scale_x_continuous(name = "Dissolved Oxygen (umol/kg)",
     sec.axis = sec_axis( trans=~./43.57, name="Dissolved Oxygen (ml/L)")
   ) 
@@ -428,13 +512,11 @@ ggplot(comb_glider, aes(y=-depth, x=dissolved_oxygen)) +
 ```{r depth by backscatter comb, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=10}
 
 ggplot(comb_glider, aes(y=-depth, x=backscatter)) +
-  geom_point(aes(col = date)) +
-  scale_color_viridis(name='Date', 
-                      trans = "date", 
-                      labels = label_date(format = "%Y-%m-%d") ) + 
+  geom_point(aes(col = distance_km)) +
+  scale_color_viridis() + 
   theme_DOM()+
   facet_wrap(vars(ID), scales = "free_y", ncol = 1) + 
-  labs(y ="Depth", x="Backscatter (units?)") 
+  labs(y ="Depth", x="Backscatter (units?)", color = "Distance (km)") 
 
 ```
 
@@ -445,13 +527,11 @@ comb_glider$density <- as.numeric(comb_glider$density)
 
 
 ggplot(comb_glider, aes(y=-depth, x=density)) +
-  geom_point(aes(col = date)) +
-  scale_color_viridis(name='Date', 
-                      trans = "date", 
-                      labels = label_date(format = "%Y-%m-%d") ) + 
+  geom_point(aes(col = distance_km)) +
+  scale_color_viridis() + 
   theme_DOM()+
   facet_wrap(vars(ID), scales = "free_y", ncol = 1) + 
-  labs(y ="Depth", x="Density (kg/m3)") 
+  labs(y ="Depth", x="Density (kg/m3)", color = "Distance (km)") 
 
 ```
 
@@ -460,13 +540,11 @@ ggplot(comb_glider, aes(y=-depth, x=density)) +
 ```{r depth by salinity comb, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=10}
 
 ggplot(comb_glider, aes(y=-depth, x=salinity)) +
-  geom_point(aes(col = date)) +
-  scale_color_viridis(name='Date', 
-                      trans = "date", 
-                      labels = label_date(format = "%Y-%m-%d") ) + 
+  geom_point(aes(col = distance_km)) +
+  scale_color_viridis() + 
   theme_DOM()+
   facet_wrap(vars(ID), scales = "free_y", ncol = 1) + 
-  labs(y ="Depth", x="Salinity (units?)") 
+  labs(y ="Depth", x="Salinity (units?)", color = "Distance (km)") 
 
 ```
 
