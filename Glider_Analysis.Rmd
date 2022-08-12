@@ -39,6 +39,7 @@ library("scales")
 library("rnaturalearth")
 library("rnaturalearthdata")
 library("ggspatial")
+library("geosphere")
 
 ```
 
@@ -91,7 +92,8 @@ ggplot(glider_320, aes(x=longitude, y = latitude)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
-  theme_DOM()
+  theme_DOM() + 
+  labs(x ="Longitude", y="Latitude")
 
 ```
 
@@ -104,7 +106,8 @@ ggplot(glider_383, aes(x=longitude, y = latitude)) +
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() + 
-  ylim(c(46.75, 47.25))
+  ylim(c(46.75, 47.25)) + 
+  labs(x ="Longitude", y="Latitude")
 
 ```
 
@@ -146,7 +149,8 @@ simple_map <- ggplot(data = world) +
     size = 2
   ) +
   scale_color_manual(values = c("darkblue", "darkgreen")) +
-  labs(x = "Longitude", y = "Latitude") 
+  labs(x = "Longitude", y = "Latitude") +
+  geom_point(aes(x=shore[1], y=shore[2]), colour="red")
 
 simple_map
 
@@ -159,17 +163,37 @@ ggplot(glider, aes(y=-depth, x= time2)) +
   geom_point(aes(col = temperature)) + 
   theme_DOM() +
   scale_color_viridis() +
-  facet_wrap(vars(ID), scales = "free")
+  facet_wrap(vars(ID), scales = "free") + 
+  labs(x ="Date", y="Depth (m)")
 
 ```
 
 
 ```{r calc distance from shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
+glider$distance <- "Blank"
 
+for(i in 1:nrow(glider)){
+  glider$distance[i] <- distm(c(glider$longitude[i], glider$latitude[i]), shore)
+}
+
+glider$distance <- as.numeric(glider$distance)
+
+glider$distance_km <- glider$distance / 1000
 
 ```
 
+
+```{r profile distance from shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+ggplot(glider, aes(y=-depth, x= distance_km)) +
+  geom_point(aes(col = temperature)) + 
+  theme_DOM() +
+  scale_color_viridis() +
+  facet_wrap(vars(ID), scales = "free") + 
+  labs(x ="Distance from shore (m)", y="Depth (km)")
+
+```
 
 
 
@@ -183,7 +207,8 @@ ggplot(glider, aes(x=depth, y= temperature)) +
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() +
-  facet_wrap(vars(ID), scales = "free")
+  facet_wrap(vars(ID), scales = "free") + 
+  labs(x ="Depth", y="Temperature")
 
 ```
 
@@ -203,7 +228,8 @@ ggplot(glider, aes(x=depth, y=dissolved_oxygen_2)) +
   theme_DOM() +
   geom_hline(yintercept = 1.4, color = "red") +
   geom_hline(yintercept = 0.5, color = "red")+
-  facet_wrap(vars(ID), scales = "free")
+  facet_wrap(vars(ID), scales = "free") + 
+  labs(x ="Depth", y="Dissolved Oxygen (ml/L)")
 
 ```
 
