@@ -40,6 +40,7 @@ library("rnaturalearth")
 library("rnaturalearthdata")
 library("ggspatial")
 library("geosphere")
+library("ncdf4")
 
 ```
 
@@ -233,6 +234,27 @@ ggplot(glider, aes(x=depth, y=dissolved_oxygen)) +
   scale_y_continuous(name = "Dissolved Oxygen (umol/kg)",
     sec.axis = sec_axis( trans=~./43.57, name="Dissolved Oxygen (ml/L)")
   ) 
+
+```
+
+
+```{r}
+
+dfo_k999_nc <- nc_open(here::here("", "dfo_k999.nc"))
+names(dfo_k999_nc$var)
+
+dfo_k999 <- as.data.frame(matrix(data=NA, nrow=7983, ncol=11))
+colnames(dfo_k999) <- c("Time", "latitude", "longitude", "chlorophyll", "salinity", "depth", "oxygen_concentration", "temperature", "backscatter_700", "cdom", "ID")
+dfo_k999$Time <- dfo_k999_nc[["dim"]][["time"]]$vals
+dfo_k999$Time <- as.POSIXct(dfo_k999$Time, origin = "1970-01-01T00:00:00+00:00")
+dfo_k999$lat <- ncvar_get(dfo_k999_nc, varid = c("latitude"))
+dfo_k999$long <- ncvar_get(dfo_k999_nc, varid = c("longitude"))
+
+
+ggplot(dfo_k999, aes(x = long, y = lat)) +
+  geom_point() +
+  labs(x = "Longitude", y = "Latitude") +
+  theme_DOM()
 
 ```
 
