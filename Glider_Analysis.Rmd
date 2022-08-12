@@ -191,7 +191,7 @@ ggplot(glider, aes(y=-depth, x= distance_km)) +
   theme_DOM() +
   scale_color_viridis() +
   facet_wrap(vars(ID), scales = "free") + 
-  labs(x ="Distance from shore (m)", y="Depth (km)")
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp")
 
 ```
 
@@ -207,8 +207,8 @@ ggplot(glider, aes(x=depth, y= temperature)) +
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() +
-  facet_wrap(vars(ID), scales = "free") + 
-  labs(x ="Depth", y="Temperature")
+  facet_wrap(vars(ID), scales = "free_x") + 
+  labs(x ="Depth (m)", y="Temperature")
 
 ```
 
@@ -220,16 +220,19 @@ ggplot(glider, aes(x=depth, y= temperature)) +
 
 glider$dissolved_oxygen_2 <- glider$dissolved_oxygen / 43.57
 
-ggplot(glider, aes(x=depth, y=dissolved_oxygen_2)) +
+ggplot(glider, aes(x=depth, y=dissolved_oxygen)) +
   geom_point(aes(col = date)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() +
-  geom_hline(yintercept = 1.4, color = "red") +
-  geom_hline(yintercept = 0.5, color = "red")+
-  facet_wrap(vars(ID), scales = "free") + 
-  labs(x ="Depth", y="Dissolved Oxygen (ml/L)")
+  geom_hline(yintercept = 60, color = "red") +
+  geom_hline(yintercept = 20, color = "red")+
+  facet_wrap(vars(ID), scales = "free_x") + 
+  labs(x ="Depth", y="Dissolved Oxygen (umol/kg)") +
+  scale_y_continuous(name = "Dissolved Oxygen (umol/kg)",
+    sec.axis = sec_axis( trans=~./43.57, name="Dissolved Oxygen (ml/L)")
+  ) 
 
 ```
 
