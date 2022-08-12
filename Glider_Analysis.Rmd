@@ -55,15 +55,36 @@ glider_320$longitude <- as.numeric(glider_320$longitude)
 glider_320$latitude <- as.numeric(glider_320$latitude)
 glider_320$depth <- as.numeric(glider_320$depth)
 glider_320$dissolved_oxygen <- as.numeric(glider_320$dissolved_oxygen)
+glider_320$temperature <- as.numeric(glider_320$temperature)
 
 glider_320$time2 <- as_datetime(glider_320$time)
-
 glider_320$date <- as.Date(glider_320$time2, format ="%Y-%m-%d")
 
 ```
 
 
-```{r path map, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+```{r getting glider_383 data, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+urlBase <- "https://gliders.ioos.us/erddap"
+glider_383Info <- info("ce_383-20220720T1508",  url = urlBase)
+glider_383 <- tabledap(glider_383Info, fields = c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature"), 'time>=2022-08-06 00:00:00+00:00', 'time<=2022-08-11 19:54:11+00:00', url = urlBase)
+
+glider_383$ID <- "383_deep"
+
+
+glider_383$longitude <- as.numeric(glider_383$longitude)
+glider_383$latitude <- as.numeric(glider_383$latitude)
+glider_383$depth <- as.numeric(glider_383$depth)
+glider_383$dissolved_oxygen <- as.numeric(glider_383$dissolved_oxygen)
+glider_383$temperature <- as.numeric(glider_383$temperature)
+
+glider_383$time2 <- as_datetime(glider_383$time)
+glider_383$date <- as.Date(glider_383$time2, format ="%Y-%m-%d")
+
+```
+
+
+```{r path map 320, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
 ggplot(glider_320, aes(x=longitude, y = latitude)) +
   geom_point(aes(col = date)) +
@@ -75,9 +96,21 @@ ggplot(glider_320, aes(x=longitude, y = latitude)) +
 ```
 
 
+```{r path map 383, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+ggplot(glider_383, aes(x=longitude, y = latitude)) +
+  geom_point(aes(col = date)) +
+  scale_color_viridis(name='Date', 
+                      trans = "date", 
+                      labels = label_date(format = "%Y-%m-%d") ) + 
+  theme_DOM() + 
+  ylim(c(46.75, 47.25))
+
+```
+
 ```{r map with shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider <- rbind(glider_320)
+glider <- rbind(glider_320, glider_383)
 
 shore <- c(-124.19208, 47.15073)
 
@@ -112,7 +145,7 @@ simple_map <- ggplot(data = world) +
     ),
     size = 2
   ) +
-  scale_color_manual(values = c("darkblue")) +
+  scale_color_manual(values = c("darkblue", "darkgreen")) +
   labs(x = "Longitude", y = "Latitude") 
 
 simple_map
@@ -125,7 +158,8 @@ simple_map
 ggplot(glider, aes(y=-depth, x= time2)) +
   geom_point(aes(col = temperature)) + 
   theme_DOM() +
-  scale_color_viridis()
+  scale_color_viridis() +
+  facet_wrap(vars(ID), scales = "free")
 
 ```
 
@@ -148,7 +182,8 @@ ggplot(glider, aes(x=depth, y= temperature)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
-  theme_DOM()
+  theme_DOM() +
+  facet_wrap(vars(ID), scales = "free")
 
 ```
 
@@ -167,7 +202,8 @@ ggplot(glider, aes(x=depth, y=dissolved_oxygen_2)) +
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() +
   geom_hline(yintercept = 1.4, color = "red") +
-  geom_hline(yintercept = 0.5, color = "red")
+  geom_hline(yintercept = 0.5, color = "red")+
+  facet_wrap(vars(ID), scales = "free")
 
 ```
 
