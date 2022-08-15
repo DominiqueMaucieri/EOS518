@@ -30,6 +30,8 @@ theme_DOM <- function () {
 }
 
 # install.packages("rerddap")
+
+library("plyr")
 library("rerddap")
 library("dplyr")
 library("ggplot2")
@@ -42,10 +44,14 @@ library("ggspatial")
 library("geosphere")
 library("ncdf4")
 library("gsw")
+library("ggoce")
+library("MASS")
+library("tidyr")
+library("reshape2")
 
 ```
 
-# Just Oregon Gliders
+# Just Washington Gliders
 
 ```{r getting glider_320 data, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
@@ -53,7 +59,7 @@ urlBase <- "https://gliders.ioos.us/erddap"
 glider_320Info <- info("ce_320-20220720T1429",  url = urlBase)
 glider_320 <- tabledap(glider_320Info, fields = c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature", "density", "CDOM"), 'time>=2022-08-03 20:05:54+00:00', 'time<=2022-08-07 11:41:59+00:00', url = urlBase)
 
-glider_320$ID <- "USA_OR_shallow"
+glider_320$ID <- "USA_WA_shallow"
 
 
 glider_320$longitude <- as.numeric(glider_320$longitude)
@@ -77,7 +83,7 @@ urlBase <- "https://gliders.ioos.us/erddap"
 glider_383Info <- info("ce_383-20220720T1508",  url = urlBase)
 glider_383 <- tabledap(glider_383Info, fields = c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature", "density", "CDOM"), 'time>=2022-08-06 00:00:00+00:00', 'time<=2022-08-11 19:54:11+00:00', url = urlBase)
 
-glider_383$ID <- "USA_OR_deep"
+glider_383$ID <- "USA_WA_deep"
 
 
 glider_383$longitude <- as.numeric(glider_383$longitude)
@@ -103,7 +109,7 @@ ggplot(glider_320, aes(x=longitude, y = latitude)) +
                       trans = "date", 
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() + 
-  labs(x ="Longitude", y="Latitude", title = "USA_OR_shallow")
+  labs(x ="Longitude", y="Latitude", title = "USA_WA_shallow")
 
 ```
 
@@ -117,26 +123,26 @@ ggplot(glider_383, aes(x=longitude, y = latitude)) +
                       labels = label_date(format = "%Y-%m-%d") ) + 
   theme_DOM() + 
   ylim(c(46.75, 47.25)) + 
-  labs(x ="Longitude", y="Latitude", title = "USA_OR_deep")
+  labs(x ="Longitude", y="Latitude", title = "USA_WA_deep")
 
 ```
 
 ```{r map with shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider_OR <- rbind(glider_320, glider_383)
+glider_WA <- rbind(glider_320, glider_383)
 
-shore_OR <- c(-124.19208, 47.15073)
+shore_WA <- c(-124.19208, 47.15073)
 
-max_lat_map <- max(c(glider_OR$latitude, shore_OR[2])) + 1
-min_lat_map <- min(c(glider_OR$latitude, shore_OR[2])) - 1
+max_lat_map <- max(c(glider_WA$latitude, shore_WA[2])) + 1
+min_lat_map <- min(c(glider_WA$latitude, shore_WA[2])) - 1
 
-max_long_map <- max(c(glider_OR$longitude, shore_OR[1])) + 1
-min_long_map <- min(c(glider_OR$longitude, shore_OR[1])) - 1
+max_long_map <- max(c(glider_WA$longitude, shore_WA[1])) + 1
+min_long_map <- min(c(glider_WA$longitude, shore_WA[1])) - 1
 
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
-simple_map_OR <- ggplot(data = world) +
+simple_map_WA <- ggplot(data = world) +
   geom_sf() +
   annotation_scale(location = "bl", width_hint = 0.5) +
   annotation_north_arrow(
@@ -150,7 +156,7 @@ simple_map_OR <- ggplot(data = world) +
   ) +
   theme_DOM() +
   geom_point(
-    data = glider_OR,
+    data = glider_WA,
     aes(
       x = longitude,
       y = latitude,
@@ -158,17 +164,17 @@ simple_map_OR <- ggplot(data = world) +
     ),
     size = 2
   ) +
-  scale_color_manual(values = c("lightslateblue", "darkorchid")) +
+  scale_color_manual(values = c("skyblue2", "blue2")) +
   labs(x = "Longitude", y = "Latitude") +
-  geom_point(aes(x=shore_OR[1], y=shore_OR[2]), colour="red")
-simple_map_OR
+  geom_point(aes(x=shore_WA[1], y=shore_WA[2]), colour="red")
+simple_map_WA
 
 ```
 
 
 ```{r profile quick and bad way, include = FALSE}
 
-ggplot(glider_OR, aes(y=-depth, x= time)) +
+ggplot(glider_WA, aes(y=-depth, x= time)) +
   geom_point(aes(col = temperature)) + 
   theme_DOM() +
   scale_color_viridis() +
@@ -180,24 +186,24 @@ ggplot(glider_OR, aes(y=-depth, x= time)) +
 
 ```{r calc distance from shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider_OR$distance <- "Blank"
+glider_WA$distance <- "Blank"
 
-for(i in 1:nrow(glider_OR)){
-  glider_OR$distance[i] <- distm(c(glider_OR$longitude[i], glider_OR$latitude[i]), shore_OR)
+for(i in 1:nrow(glider_WA)){
+  glider_WA$distance[i] <- distm(c(glider_WA$longitude[i], glider_WA$latitude[i]), shore_WA)
 }
 
-glider_OR$distance <- as.numeric(glider_OR$distance)
+glider_WA$distance <- as.numeric(glider_WA$distance)
 
-glider_OR$distance_km <- glider_OR$distance / 1000
+glider_WA$distance_km <- glider_WA$distance / 1000
 
 ```
 
 
 ```{r profile distance from shore, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=6, fig.height=8}
 
-glider_OR$ID <- factor(glider_OR$ID, levels = c("USA_OR_shallow", "USA_OR_deep"))
+glider_WA$ID <- factor(glider_WA$ID, levels = c("USA_WA_shallow", "USA_WA_deep"))
 
-ggplot(glider_OR, aes(y=-depth, x= distance_km)) +
+ggplot(glider_WA, aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = temperature)) + 
   theme_DOM() +
   scale_color_viridis() +
@@ -210,9 +216,9 @@ ggplot(glider_OR, aes(y=-depth, x= distance_km)) +
 
 ```{r depth by temperature, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider_OR$temperature <- as.numeric(glider_OR$temperature)
+glider_WA$temperature <- as.numeric(glider_WA$temperature)
 
-ggplot(glider_OR, aes(y=-depth, x= temperature)) +
+ggplot(glider_WA, aes(y=-depth, x= temperature)) +
   geom_point(aes(col = date)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
@@ -229,9 +235,9 @@ ggplot(glider_OR, aes(y=-depth, x= temperature)) +
 
 ```{r depth by DO, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider_OR$dissolved_oxygen_2 <- glider_OR$dissolved_oxygen / 43.57
+glider_WA$dissolved_oxygen_2 <- glider_WA$dissolved_oxygen / 43.57
 
-ggplot(glider_OR, aes(y=-depth, x=dissolved_oxygen)) +
+ggplot(glider_WA, aes(y=-depth, x=dissolved_oxygen)) +
   geom_point(aes(col = date)) +
   scale_color_viridis(name='Date', 
                       trans = "date", 
@@ -413,7 +419,7 @@ simple_map_VI <- ggplot(data = world) +
     size = 2
   ) +
   labs(x = "Longitude", y = "Latitude")+
-  scale_color_manual(values = c("darkblue", "darkgreen")) 
+  scale_color_manual(values = c("chocolate1", "orangered3")) 
 simple_map_VI
 
 ```
@@ -427,24 +433,36 @@ write.csv(glider_VI, file = "glider_VI_clean.csv", row.names = FALSE)
 
 ```
 
-# Both Canadian and Oregon Gliders
+# Both Canadian and Washington Gliders
 
 
 ```{r combinging it all, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-comb_glider <- rbind(glider_OR, glider_VI)
+comb_glider <- rbind(glider_WA, glider_VI)
+comb_glider$density <- as.numeric(comb_glider$density)
+
+comb_glider$depth[comb_glider$depth == "NaN"] <- NA
+comb_glider$salinity[comb_glider$salinity == "NaN"] <- NA
+comb_glider$chlorophyll[comb_glider$chlorophyll == "NaN"] <- NA
+comb_glider$dissolved_oxygen[comb_glider$dissolved_oxygen == "NaN"] <- NA
+comb_glider$backscatter[comb_glider$backscatter == "NaN"] <- NA
+comb_glider$temperature[comb_glider$temperature == "NaN"] <- NA
+comb_glider$density[comb_glider$density == "NaN"] <- NA
+comb_glider$CDOM[comb_glider$CDOM == "NaN"] <- NA
+comb_glider$dissolved_oxygen_2[comb_glider$dissolved_oxygen_2 == "NaN"] <- NA
 
 ```
 
 
+## Map
 
 ```{r map combined, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-max_lat_map_comb <- max(c(comb_glider$latitude, shore_OR[2], shore_dfo_k999[2], shore_dfo_k999[2])) + 0.25
-min_lat_map_comb <- min(c(comb_glider$latitude, shore_OR[2], shore_dfo_k999[2], shore_dfo_k999[2])) - 0.25
+max_lat_map_comb <- max(c(comb_glider$latitude, shore_WA[2], shore_dfo_k999[2], shore_dfo_k999[2])) + 0.25
+min_lat_map_comb <- min(c(comb_glider$latitude, shore_WA[2], shore_dfo_k999[2], shore_dfo_k999[2])) - 0.25
 
-max_long_map_comb <- max(c(comb_glider$longitude, shore_OR[1], shore_dfo_k999[1], shore_dfo_k999[1])) + 0.25
-min_long_map_comb <- min(c(comb_glider$longitude, shore_OR[1], shore_dfo_k999[1], shore_dfo_k999[1])) - 0.25
+max_long_map_comb <- max(c(comb_glider$longitude, shore_WA[1], shore_dfo_k999[1], shore_dfo_k999[1])) + 0.25
+min_long_map_comb <- min(c(comb_glider$longitude, shore_WA[1], shore_dfo_k999[1], shore_dfo_k999[1])) - 0.25
 
 
 simple_map_comb <- ggplot(data = world) +
@@ -468,38 +486,40 @@ simple_map_comb <- ggplot(data = world) +
       color = ID
     ),
     size = 2
-  ) +
-  scale_color_manual(values = c("darkblue", "darkgreen", "darkorchid", "lightslateblue")) +
+  )+
+  scale_color_manual(values = c("chocolate1", "orangered3", "skyblue2", "blue2")) +
   labs(x = "Longitude", y = "Latitude") +
-  geom_point(aes(x=shore_OR[1], y=shore_OR[2]), colour="red") +
+  geom_point(aes(x=shore_WA[1], y=shore_WA[2]), colour="red") +
   geom_point(aes(x=shore_dfo_bb046[1], y=shore_dfo_bb046[2]), colour="red")+
   geom_point(aes(x=shore_dfo_k999[1], y=shore_dfo_k999[2]), colour="red")
 simple_map_comb
 
 ```
 
+## Vertical-cross shelf sections
+
 ```{r profile distance from shore comb, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
 
-comb_glider$ID <- factor(comb_glider$ID, levels = c("CAN_QC_shallow", "CAN_VI_deep", "USA_OR_shallow", "USA_OR_deep"))
+comb_glider$ID <- factor(comb_glider$ID, levels = c("CAN_QC_shallow", "CAN_VI_deep", "USA_WA_shallow", "USA_WA_deep"))
 
-ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
+ggplot(comb_glider %>% drop_na(temperature), aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = temperature)) + 
   theme_DOM() +
   scale_color_viridis() +
   facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp")
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp (C)")
 
 ```
 
 
 ```{r profile distance from shore wiht salinity, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
 
-ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
+ggplot(comb_glider %>% drop_na(salinity), aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = salinity)) + 
   theme_DOM() +
   scale_color_viridis() +
   facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Salinity")
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Salinity (ppt)")
 
 ```
 
@@ -507,51 +527,64 @@ ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
 
 ```{r profile distance from shore wiht chl, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
 
-ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
+ggplot(comb_glider %>% drop_na(chlorophyll), aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = chlorophyll)) + 
   theme_DOM() +
   scale_color_viridis() +
   facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Chl")
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Chl (ug/L)")
 
 ```
 
 
-```{r profile distance from shore wiht cdom, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
+```{r profile distance from shore with cdom, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
 
-ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
+ggplot(comb_glider %>% drop_na(CDOM), aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = CDOM)) + 
   theme_DOM() +
   scale_color_viridis() +
   facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "CDOM")
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "CDOM (ppb)")
 
 ```
 
 
 ```{r profile distance from shore wiht DO, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
 
-ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
+ggplot(comb_glider %>% drop_na(dissolved_oxygen), aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = dissolved_oxygen)) + 
   theme_DOM() +
   scale_color_viridis() +
   facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
-  labs(x ="Distance from shore (km)", y="Depth (m)")
+  labs(x ="Distance from shore (km)", y="Depth (m)", color="DO (umol/kg)")
 
 ```
 
 ```{r profile distance from shore wiht density, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
 
-comb_glider$density <- as.numeric(comb_glider$density)
-
-ggplot(comb_glider, aes(y=-depth, x= distance_km)) +
+ggplot(comb_glider %>% drop_na(density), aes(y=-depth, x= distance_km)) +
   geom_point(aes(col = density)) + 
   theme_DOM() +
   scale_color_viridis() +
   facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
-  labs(x ="Distance from shore (km)", y="Depth (m)")
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Density (kg/m3)")
 
 ```
+
+```{r profile distance from shore with backscatter, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
+
+
+ggplot(comb_glider %>% drop_na(backscatter), aes(y=-depth, x= distance_km)) +
+  geom_point(aes(col = backscatter)) + 
+  theme_DOM() +
+  scale_color_viridis() +
+  facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Backscatter (/m)")
+
+```
+
+## Property-Property Plots
+
 ```{r depth by temperature comb, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=6}
 
 ggplot(comb_glider, aes(y=-depth, x= temperature)) +
@@ -617,7 +650,7 @@ ggplot(comb_glider, aes(y=-depth, x=salinity)) +
   scale_color_viridis() + 
   theme_DOM()+
   facet_wrap(vars(ID), ncol = 2) + 
-  labs(y ="Depth", x="Salinity (units?)", color = "Distance (km)") 
+  labs(y ="Depth", x="Salinity (ppt)", color = "Distance (km)") 
 
 ```
 
@@ -641,4 +674,96 @@ ggplot(comb_glider, aes(y=-depth, x=CDOM)) +
   labs(y ="Depth", x="CDOM (units?)", color = "Distance (km)") 
 
 ```
+
+
+## TS Diagrams
+
+```{r basic TS plot, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+TS_plot <- ggplot(comb_glider, aes(y=temperature, x=salinity, col = ID)) +
+  geom_smooth(se = FALSE) +
+  theme_DOM() + 
+  labs(y ="Temperature", x="Salinity (ppt)", color = "ID") +
+  scale_color_manual(values = c("darkblue", "darkgreen", "darkorchid", "lightslateblue")) 
+
+```
+
+
+```{r making isopycnal contours, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+# 
+# TS_plot <- TS_plot +  geom_isopycnal(eos ="gsw", ref_longitude=comb_glider$longitude, ref_latitude = comb_glider$latitude,
+#   n_breaks = 15)
+
+```
+
+```{r making density contours by hand, include = FALSE}
+
+# Data
+temp_range <- seq(0, 20, 0.1)
+sal_range <- seq(29, 35, 0.1)
+
+dens <- matrix(data=NA, ncol = length(temp_range), nrow = length(sal_range))
+
+for(j in 1:length(temp_range)){
+  for(i in 1:length(sal_range)){
+    dens[i,j] <- gsw_rho(sal_range[i],temp_range[j],0) - 1000
+  }
+}
+
+contour(x=sal_range, y=temp_range,z=dens) 
+
+```
+
+
+```{r making spiciness contours by hand, include =FALSE}
+
+temp_range <- seq(0, 20, 0.1)
+sal_range <- seq(29, 35, 0.1)
+
+spice <- matrix(data=NA, ncol = length(temp_range), nrow = length(sal_range))
+
+for(j in 1:length(temp_range)){
+  for(i in 1:length(sal_range)){
+    spice[i,j] <- gsw_spiciness0(sal_range[i],temp_range[j])
+  }
+}
+
+contour(x=sal_range, y=temp_range,z=spice) 
+
+```
+
+
+```{r combine all contours, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+dens_df <- as.data.frame(dens)
+colnames(dens_df) <- temp_range
+dens_melt <- melt(dens_df)
+colnames(dens_melt) <- c("temp", "dens")
+dens_melt$sal <- sal_range
+dens_melt$temp_num <- rep(temp_range, each=length(sal_range))
+
+spice_df <- as.data.frame(spice)
+colnames(spice_df) <- temp_range
+spice_melt <- melt(spice_df)
+colnames(spice_melt) <- c("temp", "spice")
+
+contours_df <- cbind(dens_melt, spice_melt$spice)
+colnames(contours_df) <- c("temp", "dens", "sal", "temp_num", "spice")
+  
+ggplot(contours_df, aes(x = sal, y = temp_num)) +
+  geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
+  geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
+  theme_DOM() +
+  labs(y ="Temperature", x="Salinity (ppt)", color = "ID") +
+  metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
+  metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0)+
+  geom_smooth(comb_glider, mapping = aes(y=temperature, x=salinity, col = ID), se = FALSE) +
+  scale_color_manual(values = c("chocolate1", "orangered3", "skyblue2", "blue2")) +
+  xlim(31, 34.5) + 
+  ylim(3,17)
+
+```
+
+### Profile Plots with contours
+
 
