@@ -6,7 +6,7 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   pdf_document:
     toc: yes
-    toc_depth: 3
+    toc_depth: 4
 ---
 
 ```{r installing packages, include=FALSE}
@@ -456,7 +456,6 @@ comb_glider$dissolved_oxygen_2[comb_glider$dissolved_oxygen_2 == "NaN"] <- NA
 
 ```
 
-\newpage
 ## Map
 
 ```{r map combined, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
@@ -678,6 +677,7 @@ ggplot(comb_glider, aes(y=-depth, x=CDOM)) +
 
 ```
 \newpage
+
 ## Property-Property Plots
 
 ### Chlorophyl vs backscatter
@@ -803,7 +803,7 @@ contours_df_WA_shallow <- ggplot(contours_df, aes(x = sal, y = temp_num)) +
   geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
   geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
   theme_DOM() +
-  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "Dissolved Oxygen (umol/kg)") +
+  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "DO (umol/kg)") +
   metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
   metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0)+
   geom_point(comb_glider %>% filter(ID == "USA_WA_shallow"), mapping = aes(y=temperature, x=salinity, col = dissolved_oxygen), se = FALSE) +
@@ -816,7 +816,7 @@ contours_df_WA_deep <- ggplot(contours_df, aes(x = sal, y = temp_num)) +
   geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
   geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
   theme_DOM() +
-  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "Dissolved Oxygen (umol/kg)") +
+  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "DO (umol/kg)") +
   metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
   metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0)+
   geom_point(comb_glider %>% filter(ID == "USA_WA_deep"), mapping = aes(y=temperature, x=salinity, col = dissolved_oxygen), se = FALSE) +
@@ -829,7 +829,7 @@ contours_df_QC <- ggplot(contours_df, aes(x = sal, y = temp_num)) +
   geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
   geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
   theme_DOM() +
-  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "Dissolved Oxygen (umol/kg)") +
+  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "DO (umol/kg)") +
   metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
   metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0)+
   geom_point(comb_glider %>% filter(ID == "CAN_QC_shallow"), mapping = aes(y=temperature, x=salinity, col = dissolved_oxygen), se = FALSE) +
@@ -842,7 +842,7 @@ contours_df_VI <- ggplot(contours_df, aes(x = sal, y = temp_num)) +
   geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
   geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
   theme_DOM() +
-  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "Dissolved Oxygen (umol/kg)") +
+  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "DO (umol/kg)") +
   metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
   metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0)+
   geom_point(comb_glider %>% filter(ID == "CAN_VI_deep"), mapping = aes(y=temperature, x=salinity, col = dissolved_oxygen), se = FALSE) +
@@ -1151,164 +1151,228 @@ plot_grid(contour_QC_plot, contour_VI_plot, contour_shallow_plot, contour_deep_p
 
 ### Interpolation Methods
 
-```{r interpolation of depth, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+```{r interpolation prep WA_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+inter_WA_shallow <- glider_WA %>% 
+  filter(ID == "USA_WA_shallow" & depth != "NaN")  %>% 
+  mutate(distance_km_r = round(distance_km, 1))
 
 est_var_by_dist <- function(df, target_var, target_dist, target_depth) {
   data_for_dist <- df %>%
-    filter(distance_km == target_dist) %>%
+    filter(distance_km_r == target_dist) %>%
     arrange(depth)
   var <- target_var
-  
-  # approx() is one way to do a linear interpolation
   approx(data_for_dist$depth, data_for_dist[[var]], xout = target_depth)$y
 }
-
-glider_WA_shallow <- glider_WA %>% 
-                  filter(ID == "USA_WA_shallow")  %>% 
-                  mutate(distance_km = round(distance_km, 4)) 
-
-# est_var_by_dist(glider_WA_shallow, "temperature", 66.7397, c(6.317120, 8, 9.341731, 10))
-
-temp_grid <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
-colnames(temp_grid) <- c("distance_km", "depth")
-
-for(i in 1:length(unique(glider_WA_shallow$distance_km))){
-
-  xx <- glider_WA_shallow %>%
-    filter(distance_km == unique(glider_WA_shallow$distance_km)[i]) %>%
-    dplyr::select(distance_km, depth) %>%
-    filter(depth != "NaN")
-  xx_depths <- xx$depth
-  
-  xx_max <- round(max(xx$depth), 1)
-  xx_min <- round(min(xx$depth), 1)
-  
-  xx_seq <- seq(xx_min, xx_max, by = 0.1)
-  
-  depths_above <- glider_WA_shallow %>%
-    dplyr::select(depth) %>%
-    filter(depth <= xx_max)
-  
-  depths_all <- unique(c(xx_seq, xx_depths, depths_above$depth))
-
-  yy <- as.data.frame(matrix(data=NA, ncol=2, nrow = length(depths_all)))
-  colnames(yy) <- c("distance_km", "depth")
-  yy$distance_km <- unique(glider_WA_shallow$distance_km)[i]
-  yy$depth <- depths_all
-  
-  temp_grid <- rbind(temp_grid, yy)
-  
-}
-
-temp_interp_depth <- temp_grid %>%
-  group_by(distance_km) %>%
-  mutate(temp = est_var_by_dist(glider_WA_shallow, "temperature", distance_km[1], depth)) %>%
-  drop_na(temp)
-
-# ggplot(temp_interp_depth, aes(y=-depth, x=distance_km)) +
-#   geom_point(aes(col = temp)) +
-#   theme_DOM() +
-#   scale_color_viridis() +
-#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp")
-
-# ggplot(glider_WA_shallow, aes(y=-depth, x=distance_km)) +
-#   geom_point(aes(col = temperature)) + 
-#   theme_DOM() +
-#   scale_color_viridis() + 
-#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") 
-```
-
-```{r interpolating across distance, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
-
-max_depths_WA_shallow <- glider_WA_shallow %>%
-  group_by(distance_km) %>%
-  filter(depth == max(depth))
-
-max_depths_WA_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow = length(unique(glider_WA_shallow$distance_km))))
-colnames(max_depths_WA_shallow) <- c("distance_km", "max_depth")
-max_depths_WA_shallow$distance_km <- unique(glider_WA_shallow$distance_km)
-
-for(i in 1:nrow(max_depths_WA_shallow)){
-
-  xx <- glider_WA_shallow %>%
-    filter(distance_km == max_depths_WA_shallow$distance_km[i]) %>%
-    filter(depth != "NaN")
-  max_depths_WA_shallow$max_depth[i] <- max(xx$depth)
-}
-
-max_depths_WA_shallow <- max_depths_WA_shallow %>%
-  filter(distance_km < 36 | (distance_km > 36 & max_depth > 64))
-
-max_WA_shallow_dist <- round(max(max_depths_WA_shallow$distance_km), 1)
-min_WA_shallow_dist <- round(min(max_depths_WA_shallow$distance_km), 1)
-
-smooth_vals = predict(loess(max_depth~distance_km,max_depths_WA_shallow), seq(min_WA_shallow_dist, max_WA_shallow_dist, by=1))
-
-maxdepth_dist_smooth <- data.frame(distance_km = seq(min_WA_shallow_dist, max_WA_shallow_dist, by=1), smooth = smooth_vals)
-
-
-
-
-
-
-
-
-temp_grid_2 <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
-colnames(temp_grid_2) <- c("distance_km", "depth")
-
-for(i in 1:length(unique(temp_interp_depth$depth))){
-  
-  xx <- temp_interp_depth %>%
-    filter(depth == unique(temp_interp_depth$depth)[i])
-  xx_dists <- xx$distance_km
-  
-  xx_max <- round(max(xx$distance_km), 1)
-  xx_min <- round(min(xx$distance_km), 1)
-  
-  xx_seq <- maxdepth_dist_smooth %>%
-    filter(distance_km >= xx_min & distance_km <= xx_max)
-
-  yy <- as.data.frame(matrix(data=NA, ncol=2, nrow = nrow(xx_seq)))
-  colnames(yy) <- c("distance_km", "depth")
-  yy$depth <- unique(temp_interp_depth$depth)[i]
-  yy$distance_km <- xx_seq$distance_km
-  
-  temp_grid_2 <- rbind(temp_grid_2, yy)
-  
-}
-
-
-
-
 
 estimate_var_by_depth <- function(df, target_var, target_depth, target_dist) {
   data_for_depth <- df %>% 
     filter(depth == target_depth) %>%
     arrange(distance_km)
   var <- target_var
-  
   approx(data_for_depth$distance_km, data_for_depth[[var]], xout = target_dist)$y
 }
 
+interp_grid_depth_WA_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+colnames(interp_grid_depth_WA_shallow) <- c("distance_km", "depth")
 
+WA_shallow_maxdepths <- inter_WA_shallow %>%
+  dplyr::select(distance_km_r, depth) %>%
+  group_by(distance_km_r) %>%
+  dplyr::summarise(max_depth = max(depth))
 
-temp_raster <- temp_grid_2 %>%
-  group_by(depth) %>%
-  mutate(temp = estimate_var_by_depth(temp_grid, "temperature", depth[1], distance_km)) %>%
-  drop_na(temp)
+for(i in 1:length(unique(inter_WA_shallow$distance_km_r))){
 
-ggplot(temp_raster, aes(distance_km, depth, fill = temp)) +
-  geom_raster() +
-  scale_y_reverse() +
-  scale_fill_gradient2(
-    midpoint = 15, 
-    high = scales::muted("red"), 
-    low = scales::muted("blue")
-  ) +
-  coord_cartesian(expand = FALSE)
+  xx_max <- WA_shallow_maxdepths %>%
+    filter(distance_km_r == unique(inter_WA_shallow$distance_km_r)[i])
+  
+  depths_above <- seq(0, round(xx_max$max_depth[1], 1), by =0.1)
 
+  yy <- data.frame(rep(unique(inter_WA_shallow$distance_km_r)[i], times = length(depths_above)), depths_above)
+  colnames(yy) <- c("distance_km", "depth")
+  
+  interp_grid_depth_WA_shallow <- rbind(interp_grid_depth_WA_shallow, yy)
+  
+}
 
+# ggplot(interpdepth_WA_shallow, aes(y=-depth, x=distance_km)) +
+#   geom_point(aes(col = density)) +
+#   theme_DOM() +
+#   scale_color_viridis() +
+#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "density")
+
+# ggplot(WA_shallow_maxdepths, aes(y=-max_depth, x=distance_km_r)) +
+#   geom_point() +
+#   geom_smooth() 
+
+WA_shallow_maxdepths <- WA_shallow_maxdepths %>%
+  dplyr::filter(distance_km_r < 55 | (distance_km_r > 55 & max_depth > 130))
+
+max_WA_shallow_dist <- max(WA_shallow_maxdepths$distance_km_r)
+min_WA_shallow_dist <- min(WA_shallow_maxdepths$distance_km_r)
+seq_WA_shallow_dist <- seq(min_WA_shallow_dist, max_WA_shallow_dist, by = 0.1)
+
+smooth_WA_shallow <- data.frame(distance_km = seq(min_WA_shallow_dist, max_WA_shallow_dist, by = 0.1), 
+                                depth_smooth = predict(loess(max_depth~distance_km_r,WA_shallow_maxdepths), seq_WA_shallow_dist))
+# ggplot(WA_shallow_maxdepths, aes(y=-max_depth, x=distance_km_r)) +
+#   geom_point() +
+#   geom_smooth() +
+#   geom_smooth(smooth_WA_shallow, mapping = aes(x = distance_km, y = -depth_smooth), color = "pink", alpha = 0.3)
+
+interp_grid_dist_WA_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+colnames(interp_grid_dist_WA_shallow) <- c("distance_km", "depth")
+
+for(i in 1:length(unique(interp_grid_depth_WA_shallow$depth))){
+
+  xx_smooth <- smooth_WA_shallow %>%
+    filter(depth_smooth <= unique(interp_grid_depth_WA_shallow$depth)[i])
+  
+  if(nrow(xx_smooth) == 0){
+    yy <- data.frame(seq_WA_shallow_dist, rep(unique(interp_grid_depth_WA_shallow$depth)[i], times = length(seq_WA_shallow_dist)))
+    colnames(yy) <- c("distance_km", "depth")
+  
+    interp_grid_dist_WA_shallow <- rbind(interp_grid_dist_WA_shallow, yy)
+  } else {
+    xx_seq_dist <- seq_WA_shallow_dist[seq_WA_shallow_dist >= max(xx_smooth$distance_km)]
+    
+    yy <- data.frame(xx_seq_dist, rep(unique(interp_grid_depth_WA_shallow$depth)[i], times = length(xx_seq_dist)))
+    colnames(yy) <- c("distance_km", "depth")
+    
+    interp_grid_dist_WA_shallow <- rbind(interp_grid_dist_WA_shallow, yy)
+  }
+}
 
 ```
+
+
+
+
+#### Density
+
+```{r interpolation density, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_shallow, "density", 66.7, c(6.3, 8, 9.3, 10))
+
+interp_depth_dens_WA_shallow <- interp_grid_depth_WA_shallow %>%
+  group_by(distance_km) %>%
+  mutate(density = est_var_by_dist(inter_WA_shallow, "density", distance_km[1], depth)) %>%
+  drop_na(density)
+
+check_WA <- interp_depth_dens_WA_shallow %>%
+  group_by(depth) %>%
+  summarize(reps = length(depth)) %>%
+  filter(reps >= 2)
+
+raster_dens_WA_shallow <- interp_grid_dist_WA_shallow %>%
+  group_by(depth) %>%
+  dplyr::filter(depth %in% check_WA$depth) %>%
+  mutate(density = estimate_var_by_depth(interp_depth_dens_WA_shallow, "density", depth[1], distance_km)) %>%
+  drop_na(density)
+
+raster_dens_WA_shallow$density <- raster_dens_WA_shallow$density - 1000
+
+ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
+  geom_raster() +
+  scale_y_reverse() +
+  scale_fill_viridis() +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", fill = "Density (kg/m3)")
+
+```
+
+
+```{r density contour WA_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+dens_cont_WA_shallow <- as.data.frame(matrix(data=NA, ncol = 7, nrow = length(unique(raster_dens_WA_shallow$distance_km))))
+colnames(dens_cont_WA_shallow) <- c("distance_km", "den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27")
+dens_cont_WA_shallow$distance_km <- unique(raster_dens_WA_shallow$distance_km)
+  
+for(i in 1:nrow(dens_cont_WA_shallow)){
+  xx <- raster_dens_WA_shallow[raster_dens_WA_shallow$distance_km == unique(raster_dens_WA_shallow$distance_km)[i],]
+  dens_cont_WA_shallow$den_26[i] <- xx[which.min(abs(xx$density - 26)),]$depth
+  dens_cont_WA_shallow$den_26.2[i] <- xx[which.min(abs(xx$density - 26.2)),]$depth
+  dens_cont_WA_shallow$den_26.4[i] <- xx[which.min(abs(xx$density - 26.4)),]$depth
+  dens_cont_WA_shallow$den_26.6[i] <- xx[which.min(abs(xx$density - 26.6)),]$depth
+  dens_cont_WA_shallow$den_26.8[i] <- xx[which.min(abs(xx$density - 26.8)),]$depth
+  dens_cont_WA_shallow$den_27[i] <- xx[which.min(abs(xx$density - 27)),]$depth
+}
+
+
+ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
+  geom_raster() +
+  scale_y_reverse() +
+  scale_fill_viridis() +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", fill = "Density (kg/m3)") +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.2, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.4, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.6, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.8, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_27, fill=NULL), col="white", span = 0.1)
+
+```
+
+#### Temperature
+
+```{r interpolation temperature, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_shallow, "temperature", 66.7, c(6.3, 8, 9.3, 10))
+
+interp_depth_temp_WA_shallow <- interp_grid_depth_WA_shallow %>%
+  group_by(distance_km) %>%
+  mutate(temperature = est_var_by_dist(inter_WA_shallow, "temperature", distance_km[1], depth)) %>%
+  drop_na(temperature)
+
+check_WA <- interp_depth_temp_WA_shallow %>%
+  group_by(depth) %>%
+  summarize(reps = length(depth)) %>%
+  filter(reps >= 2)
+
+raster_temp_WA_shallow <- interp_grid_dist_WA_shallow %>%
+  group_by(depth) %>%
+  dplyr::filter(depth %in% check_WA$depth) %>%
+  mutate(temperature = estimate_var_by_depth(interp_depth_temp_WA_shallow, "temperature", depth[1], distance_km)) %>%
+  drop_na(temperature)
+
+ggplot(raster_temp_WA_shallow, aes(distance_km, depth, fill = temperature)) +
+  geom_raster() +
+  scale_y_reverse() +
+  scale_fill_viridis() +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", fill = "Temperature (C)") +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.2, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.4, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.6, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.8, fill=NULL), col="white", span = 0.1) +
+  geom_line(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_27, fill=NULL), col="white", span = 0.1)
+
+```
+
+```{r isopycnal for temperature, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+long_dens_cont_WA_shallow <- dens_cont_WA_shallow %>%
+  pivot_longer(cols = c("den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27"), names_to = "isopycnal", values_to = "depth")
+
+for(i in 1:nrow(long_dens_cont_WA_shallow)){
+  long_dens_cont_WA_shallow$temperature[i] <- raster_temp_WA_shallow[(raster_temp_WA_shallow$distance_km == 
+                                                                 long_dens_cont_WA_shallow$distance_km[i] & 
+                                                                 raster_temp_WA_shallow$depth ==  
+                                                                 long_dens_cont_WA_shallow$depth[i]),]$temperature
+}
+long_dens_cont_WA_shallow$isopycnal <- as.factor(long_dens_cont_WA_shallow$isopycnal)
+
+ggplot(long_dens_cont_WA_shallow, aes(distance_km, temperature)) +
+  geom_point() +
+  scale_y_reverse() +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2)
+
+```
+
+
+
+
 
 
