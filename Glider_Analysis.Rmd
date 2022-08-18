@@ -269,7 +269,7 @@ ggplot(glider_WA, aes(y=-depth, x=dissolved_oxygen)) +
 
 ```{r vancouver island map, warning=FALSE, tidy = TRUE, message=FALSE, echo=FALSE}
 
-dfo_k999_nc <- nc_open(here::here("", "dfo_k999.nc"))
+dfo_k999_nc <- nc_open(here::here("CAN_Data", "dfo_k999.nc"))
 
 dfo_k999 <- as.data.frame(matrix(data=NA, nrow=7983, ncol=12))
 colnames(dfo_k999) <- c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature", "density", "CDOM", "ID")
@@ -322,7 +322,7 @@ dfo_k999 <- dfo_k999 %>%
 
 ```{r vancouver island map dfo_bb046, warning=FALSE, tidy = TRUE, message=FALSE, echo=FALSE}
 
-dfo_bb046_nc <- nc_open(here::here("", "dfo_bb046.nc"))
+dfo_bb046_nc <- nc_open(here::here("CAN_Data", "dfo_bb046.nc"))
 
 dfo_bb046 <- as.data.frame(matrix(data=NA, nrow=17799, ncol=12))
 colnames(dfo_bb046) <- c("longitude", "latitude", "time", "depth", "salinity", "chlorophyll", "dissolved_oxygen", "backscatter", "temperature", "density", "CDOM", "ID")
@@ -398,6 +398,9 @@ dfo_bb046$distance_km <- dfo_bb046$distance / 1000
 
 dfo_bb046$dissolved_oxygen_2 <- dfo_bb046$dissolved_oxygen / 43.57
 
+dfo_bb046 <- dfo_bb046%>%
+  filter(distance_km<=100)
+
 ```
 
 
@@ -441,13 +444,6 @@ simple_map_VI
 ```
 
 
-
-
-```{r save VI glider, include = FALSE}
-
-write.csv(glider_VI, file = "glider_VI_clean.csv", row.names = FALSE)
-
-```
 \newpage
 # Both Canadian and Washington Gliders
 
@@ -465,6 +461,8 @@ comb_glider$temperature[comb_glider$temperature == "NaN"] <- NA
 comb_glider$density[comb_glider$density == "NaN"] <- NA
 comb_glider$CDOM[comb_glider$CDOM == "NaN"] <- NA
 comb_glider$dissolved_oxygen_2[comb_glider$dissolved_oxygen_2 == "NaN"] <- NA
+
+write.csv(comb_glider, "Cleaned_Glider_Data.csv")
 
 ```
 
@@ -931,279 +929,280 @@ plot_grid(contours_df_QC_depth, contours_df_VI_depth, contours_df_WA_shallow_dep
 
 ### Guestimation Methods
 
+- better methods were developed so this is no longer needed
 
 ```{r looping for depth contour WA, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
-
-unique_depth_WA <- comb_glider %>%
-  dplyr::ungroup() %>%
-  dplyr::group_by(ID, distance_km) %>% 
-  dplyr::summarize(depth_26den = "blank", 
-                   depth_26.2den = "blank",
-                   depth_26.4den = "blank",
-                   depth_26.6den = "blank",
-                   depth_26.8den = "blank",
-                   depth_27den = "blank") %>%
-  dplyr::filter(ID == "USA_WA_shallow" | ID == "USA_WA_deep")
-
-
-for(i in 1:nrow(unique_depth_WA)){
-
-    xx <- comb_glider %>% 
-      filter(ID == unique_depth_WA$ID[i] & 
-               distance_km == unique_depth_WA$distance_km[i])
-    xx$density <- round(xx$density, digits = 1)
-    
-    yy <- xx %>% filter(density == 1026)
-    if(nrow(yy) > 0){
-      unique_depth_WA$depth_26den[i] <- - mean(yy$depth)
-      }else{
-    if(nrow(yy) == 0){unique_depth_WA$depth_26den[i] <- NA}}
-    
-    zz <- xx %>% filter(density == 1026.2)
-    if(nrow(zz) > 0){
-      unique_depth_WA$depth_26.2den[i] <- - mean(zz$depth)
-      }else{
-    if(nrow(zz) == 0){unique_depth_WA$depth_26.2den[i] <- NA}}
-    
-    aa <- xx %>% filter(density == 1026.4)
-    if(nrow(aa) > 0){
-      unique_depth_WA$depth_26.4den[i] <- - mean(aa$depth)
-      }else{
-    if(nrow(aa) == 0){unique_depth_WA$depth_26.4den[i] <- NA}}
-    
-    bb <- xx %>% filter(density == 1026.6)
-    if(nrow(bb) > 0){
-      unique_depth_WA$depth_26.6den[i] <- - mean(bb$depth)
-      }else{
-    if(nrow(bb) == 0){unique_depth_WA$depth_26.6den[i] <- NA}}
-    
-    cc <- xx %>% filter(density == 1026.8)
-    if(nrow(cc) > 0){
-      unique_depth_WA$depth_26.8den[i] <- - mean(cc$depth)
-      }else{
-    if(nrow(cc) == 0){unique_depth_WA$depth_26.8den[i] <- NA}}
-    
-    dd <- xx %>% filter(density == 1027)
-    if(nrow(dd) > 0){
-      unique_depth_WA$depth_26den[i] <- - mean(dd$depth)
-      }else{
-    if(nrow(dd) == 0){unique_depth_WA$depth_26den[i] <- NA}}
-}
-
-unique_depth_WA$depth_26den <- as.numeric(unique_depth_WA$depth_26den)
-unique_depth_WA$depth_26.2den <- as.numeric(unique_depth_WA$depth_26.2den)
-unique_depth_WA$depth_26.4den <- as.numeric(unique_depth_WA$depth_26.4den)
-unique_depth_WA$depth_26.6den <- as.numeric(unique_depth_WA$depth_26.6den)
-unique_depth_WA$depth_26.8den <- as.numeric(unique_depth_WA$depth_26.8den)
-unique_depth_WA$depth_27den <- as.numeric(unique_depth_WA$depth_27den)
+# 
+# unique_depth_WA <- comb_glider %>%
+#   dplyr::ungroup() %>%
+#   dplyr::group_by(ID, distance_km) %>% 
+#   dplyr::summarize(depth_26den = "blank", 
+#                    depth_26.2den = "blank",
+#                    depth_26.4den = "blank",
+#                    depth_26.6den = "blank",
+#                    depth_26.8den = "blank",
+#                    depth_27den = "blank") %>%
+#   dplyr::filter(ID == "USA_WA_shallow" | ID == "USA_WA_deep")
+# 
+# 
+# for(i in 1:nrow(unique_depth_WA)){
+# 
+#     xx <- comb_glider %>% 
+#       filter(ID == unique_depth_WA$ID[i] & 
+#                distance_km == unique_depth_WA$distance_km[i])
+#     xx$density <- round(xx$density, digits = 1)
+#     
+#     yy <- xx %>% filter(density == 1026)
+#     if(nrow(yy) > 0){
+#       unique_depth_WA$depth_26den[i] <- - mean(yy$depth)
+#       }else{
+#     if(nrow(yy) == 0){unique_depth_WA$depth_26den[i] <- NA}}
+#     
+#     zz <- xx %>% filter(density == 1026.2)
+#     if(nrow(zz) > 0){
+#       unique_depth_WA$depth_26.2den[i] <- - mean(zz$depth)
+#       }else{
+#     if(nrow(zz) == 0){unique_depth_WA$depth_26.2den[i] <- NA}}
+#     
+#     aa <- xx %>% filter(density == 1026.4)
+#     if(nrow(aa) > 0){
+#       unique_depth_WA$depth_26.4den[i] <- - mean(aa$depth)
+#       }else{
+#     if(nrow(aa) == 0){unique_depth_WA$depth_26.4den[i] <- NA}}
+#     
+#     bb <- xx %>% filter(density == 1026.6)
+#     if(nrow(bb) > 0){
+#       unique_depth_WA$depth_26.6den[i] <- - mean(bb$depth)
+#       }else{
+#     if(nrow(bb) == 0){unique_depth_WA$depth_26.6den[i] <- NA}}
+#     
+#     cc <- xx %>% filter(density == 1026.8)
+#     if(nrow(cc) > 0){
+#       unique_depth_WA$depth_26.8den[i] <- - mean(cc$depth)
+#       }else{
+#     if(nrow(cc) == 0){unique_depth_WA$depth_26.8den[i] <- NA}}
+#     
+#     dd <- xx %>% filter(density == 1027)
+#     if(nrow(dd) > 0){
+#       unique_depth_WA$depth_26den[i] <- - mean(dd$depth)
+#       }else{
+#     if(nrow(dd) == 0){unique_depth_WA$depth_26den[i] <- NA}}
+# }
+# 
+# unique_depth_WA$depth_26den <- as.numeric(unique_depth_WA$depth_26den)
+# unique_depth_WA$depth_26.2den <- as.numeric(unique_depth_WA$depth_26.2den)
+# unique_depth_WA$depth_26.4den <- as.numeric(unique_depth_WA$depth_26.4den)
+# unique_depth_WA$depth_26.6den <- as.numeric(unique_depth_WA$depth_26.6den)
+# unique_depth_WA$depth_26.8den <- as.numeric(unique_depth_WA$depth_26.8den)
+# unique_depth_WA$depth_27den <- as.numeric(unique_depth_WA$depth_27den)
 
 ```
 
 
 ```{r profile and contour WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-unique_depth_WA_shallow <- unique_depth_WA %>% filter(ID == "USA_WA_shallow")
-
-contour_shallow_plot <- ggplot(glider_WA %>% drop_na(temperature) %>% filter(ID == "USA_WA_shallow"), 
-       aes(y=-depth, x=distance_km)) +
-  geom_point(aes(col = temperature)) + 
-  theme_DOM() +
-  scale_color_viridis() + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
-  stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
-  ylim(-1000,0)
-
-unique_depth_WA_deep <- unique_depth_WA %>% filter(ID == "USA_WA_deep")
-
-contour_deep_plot <- ggplot(glider_WA %>% drop_na(temperature) %>% filter(ID == "USA_WA_deep"), 
-       aes(y=-depth, x=distance_km)) +
-  geom_point(aes(col = temperature)) + 
-  theme_DOM() +
-  scale_color_viridis() + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
-  stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
-  ylim(-1000,0)
+# unique_depth_WA_shallow <- unique_depth_WA %>% filter(ID == "USA_WA_shallow")
+# 
+# contour_shallow_plot <- ggplot(glider_WA %>% drop_na(temperature) %>% filter(ID == "USA_WA_shallow"), 
+#        aes(y=-depth, x=distance_km)) +
+#   geom_point(aes(col = temperature)) + 
+#   theme_DOM() +
+#   scale_color_viridis() + 
+#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
+#   stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_shallow, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
+#   ylim(-1000,0)
+# 
+# unique_depth_WA_deep <- unique_depth_WA %>% filter(ID == "USA_WA_deep")
+# 
+# contour_deep_plot <- ggplot(glider_WA %>% drop_na(temperature) %>% filter(ID == "USA_WA_deep"), 
+#        aes(y=-depth, x=distance_km)) +
+#   geom_point(aes(col = temperature)) + 
+#   theme_DOM() +
+#   scale_color_viridis() + 
+#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
+#   stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_WA_deep, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
+#   ylim(-1000,0)
 
 ```
 
 
 ```{r looping for depth contour VI, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-glider_VI_VI <- glider_VI %>%
-  dplyr::ungroup() %>%
-  dplyr::filter(ID == "CAN_VI_deep")
-
-dis_VI_min <- min(glider_VI_VI$distance_km)
-dis_VI_max <- max(glider_VI_VI$distance_km)
-dis_VI_range <- seq(40, 221.4, by=0.2)
-
-unique_depth_VI <- as.data.frame(matrix(data = NA, ncol = 8, nrow = length(dis_VI_range)))
-colnames(unique_depth_VI) <- colnames(unique_depth_WA)
-unique_depth_VI$ID <- "CAN_VI_deep"
-unique_depth_VI$distance_km <- dis_VI_range
-
-
-for(i in 1:nrow(unique_depth_VI)){
-
-    xx <- glider_VI_VI %>% 
-      filter(distance_km >= unique_depth_VI$distance_km[i] & 
-               distance_km < unique_depth_VI$distance_km[i] + 0.2)
-    xx$density <- round(xx$density, digits = 1)
-    
-    yy <- xx %>% filter(density == 1026)
-    if(nrow(yy) > 0){
-      unique_depth_VI$depth_26den[i] <- - mean(yy$depth)
-      }else{
-    if(nrow(yy) == 0){unique_depth_VI$depth_26den[i] <- NA}}
-    
-    zz <- xx %>% filter(density == 1026.2)
-    if(nrow(zz) > 0){
-      unique_depth_VI$depth_26.2den[i] <- - mean(zz$depth)
-      }else{
-    if(nrow(zz) == 0){unique_depth_VI$depth_26.2den[i] <- NA}}
-    
-    aa <- xx %>% filter(density == 1026.4)
-    if(nrow(aa) > 0){
-      unique_depth_VI$depth_26.4den[i] <- - mean(aa$depth)
-      }else{
-    if(nrow(aa) == 0){unique_depth_VI$depth_26.4den[i] <- NA}}
-    
-    bb <- xx %>% filter(density == 1026.6)
-    if(nrow(bb) > 0){
-      unique_depth_VI$depth_26.6den[i] <- - mean(bb$depth)
-      }else{
-    if(nrow(bb) == 0){unique_depth_VI$depth_26.6den[i] <- NA}}
-    
-    cc <- xx %>% filter(density == 1026.8)
-    if(nrow(cc) > 0){
-      unique_depth_VI$depth_26.8den[i] <- - mean(cc$depth)
-      }else{
-    if(nrow(cc) == 0){unique_depth_VI$depth_26.8den[i] <- NA}}
-    
-    dd <- xx %>% filter(density == 1027)
-    if(nrow(dd) > 0){
-      unique_depth_VI$depth_26den[i] <- - mean(dd$depth)
-      }else{
-    if(nrow(dd) == 0){unique_depth_VI$depth_26den[i] <- NA}}
-}
-
-unique_depth_VI$depth_26den <- as.numeric(unique_depth_VI$depth_26den)
-unique_depth_VI$depth_26.2den <- as.numeric(unique_depth_VI$depth_26.2den)
-unique_depth_VI$depth_26.4den <- as.numeric(unique_depth_VI$depth_26.4den)
-unique_depth_VI$depth_26.6den <- as.numeric(unique_depth_VI$depth_26.6den)
-unique_depth_VI$depth_26.8den <- as.numeric(unique_depth_VI$depth_26.8den)
-unique_depth_VI$depth_27den <- as.numeric(unique_depth_VI$depth_27den)
-
-contour_VI_plot <- ggplot(glider_VI_VI %>% 
-                                 drop_na(temperature), 
-       aes(y=-depth, x=distance_km)) +
-  geom_point(aes(col = temperature)) + 
-  theme_DOM() +
-  scale_color_viridis() + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
-  stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
-  ylim(-1000,0)
+# glider_VI_VI <- glider_VI %>%
+#   dplyr::ungroup() %>%
+#   dplyr::filter(ID == "CAN_VI_deep")
+# 
+# dis_VI_min <- min(glider_VI_VI$distance_km)
+# dis_VI_max <- max(glider_VI_VI$distance_km)
+# dis_VI_range <- seq(40, 221.4, by=0.2)
+# 
+# unique_depth_VI <- as.data.frame(matrix(data = NA, ncol = 8, nrow = length(dis_VI_range)))
+# colnames(unique_depth_VI) <- colnames(unique_depth_WA)
+# unique_depth_VI$ID <- "CAN_VI_deep"
+# unique_depth_VI$distance_km <- dis_VI_range
+# 
+# 
+# for(i in 1:nrow(unique_depth_VI)){
+# 
+#     xx <- glider_VI_VI %>% 
+#       filter(distance_km >= unique_depth_VI$distance_km[i] & 
+#                distance_km < unique_depth_VI$distance_km[i] + 0.2)
+#     xx$density <- round(xx$density, digits = 1)
+#     
+#     yy <- xx %>% filter(density == 1026)
+#     if(nrow(yy) > 0){
+#       unique_depth_VI$depth_26den[i] <- - mean(yy$depth)
+#       }else{
+#     if(nrow(yy) == 0){unique_depth_VI$depth_26den[i] <- NA}}
+#     
+#     zz <- xx %>% filter(density == 1026.2)
+#     if(nrow(zz) > 0){
+#       unique_depth_VI$depth_26.2den[i] <- - mean(zz$depth)
+#       }else{
+#     if(nrow(zz) == 0){unique_depth_VI$depth_26.2den[i] <- NA}}
+#     
+#     aa <- xx %>% filter(density == 1026.4)
+#     if(nrow(aa) > 0){
+#       unique_depth_VI$depth_26.4den[i] <- - mean(aa$depth)
+#       }else{
+#     if(nrow(aa) == 0){unique_depth_VI$depth_26.4den[i] <- NA}}
+#     
+#     bb <- xx %>% filter(density == 1026.6)
+#     if(nrow(bb) > 0){
+#       unique_depth_VI$depth_26.6den[i] <- - mean(bb$depth)
+#       }else{
+#     if(nrow(bb) == 0){unique_depth_VI$depth_26.6den[i] <- NA}}
+#     
+#     cc <- xx %>% filter(density == 1026.8)
+#     if(nrow(cc) > 0){
+#       unique_depth_VI$depth_26.8den[i] <- - mean(cc$depth)
+#       }else{
+#     if(nrow(cc) == 0){unique_depth_VI$depth_26.8den[i] <- NA}}
+#     
+#     dd <- xx %>% filter(density == 1027)
+#     if(nrow(dd) > 0){
+#       unique_depth_VI$depth_26den[i] <- - mean(dd$depth)
+#       }else{
+#     if(nrow(dd) == 0){unique_depth_VI$depth_26den[i] <- NA}}
+# }
+# 
+# unique_depth_VI$depth_26den <- as.numeric(unique_depth_VI$depth_26den)
+# unique_depth_VI$depth_26.2den <- as.numeric(unique_depth_VI$depth_26.2den)
+# unique_depth_VI$depth_26.4den <- as.numeric(unique_depth_VI$depth_26.4den)
+# unique_depth_VI$depth_26.6den <- as.numeric(unique_depth_VI$depth_26.6den)
+# unique_depth_VI$depth_26.8den <- as.numeric(unique_depth_VI$depth_26.8den)
+# unique_depth_VI$depth_27den <- as.numeric(unique_depth_VI$depth_27den)
+# 
+# contour_VI_plot <- ggplot(glider_VI_VI %>% 
+#                                  drop_na(temperature), 
+#        aes(y=-depth, x=distance_km)) +
+#   geom_point(aes(col = temperature)) + 
+#   theme_DOM() +
+#   scale_color_viridis() + 
+#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
+#   stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_VI, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
+#   ylim(-1000,0)
 
 ```
 
 
 
 ```{r looping for depth contour QC, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
-
-glider_VI_QC <- glider_VI %>%
-  dplyr::ungroup() %>%
-  dplyr::filter(ID == "CAN_QC_shallow")
-
-dis_QC_min <- min(glider_VI_QC$distance_km)
-dis_QC_max <- max(glider_VI_QC$distance_km)
-dis_QC_range <- seq(11.2, 125.1, by=0.2)
-
-unique_depth_QC <- as.data.frame(matrix(data = NA, ncol = 8, nrow = length(dis_QC_range)))
-colnames(unique_depth_QC) <- colnames(unique_depth_WA)
-unique_depth_QC$ID <- "CAN_QC_shallow"
-unique_depth_QC$distance_km <- dis_QC_range
-
-
-for(i in 1:nrow(unique_depth_QC)){
-
-    xx <- glider_VI_QC %>% 
-      filter(distance_km >= unique_depth_QC$distance_km[i] & 
-               distance_km < unique_depth_QC$distance_km[i] + 0.2)
-    xx$density <- round(xx$density, digits = 1)
-    
-    yy <- xx %>% filter(density == 1026)
-    if(nrow(yy) > 0){
-      unique_depth_QC$depth_26den[i] <- - mean(yy$depth)
-      }else{
-    if(nrow(yy) == 0){unique_depth_QC$depth_26den[i] <- NA}}
-    
-    zz <- xx %>% filter(density == 1026.2)
-    if(nrow(zz) > 0){
-      unique_depth_QC$depth_26.2den[i] <- - mean(zz$depth)
-      }else{
-    if(nrow(zz) == 0){unique_depth_QC$depth_26.2den[i] <- NA}}
-    
-    aa <- xx %>% filter(density == 1026.4)
-    if(nrow(aa) > 0){
-      unique_depth_QC$depth_26.4den[i] <- - mean(aa$depth)
-      }else{
-    if(nrow(aa) == 0){unique_depth_QC$depth_26.4den[i] <- NA}}
-    
-    bb <- xx %>% filter(density == 1026.6)
-    if(nrow(bb) > 0){
-      unique_depth_QC$depth_26.6den[i] <- - mean(bb$depth)
-      }else{
-    if(nrow(bb) == 0){unique_depth_QC$depth_26.6den[i] <- NA}}
-    
-    cc <- xx %>% filter(density == 1026.8)
-    if(nrow(cc) > 0){
-      unique_depth_QC$depth_26.8den[i] <- - mean(cc$depth)
-      }else{
-    if(nrow(cc) == 0){unique_depth_QC$depth_26.8den[i] <- NA}}
-    
-    dd <- xx %>% filter(density == 1027)
-    if(nrow(dd) > 0){
-      unique_depth_QC$depth_26den[i] <- - mean(dd$depth)
-      }else{
-    if(nrow(dd) == 0){unique_depth_QC$depth_26den[i] <- NA}}
-}
-
-unique_depth_QC$depth_26den <- as.numeric(unique_depth_QC$depth_26den)
-unique_depth_QC$depth_26.2den <- as.numeric(unique_depth_QC$depth_26.2den)
-unique_depth_QC$depth_26.4den <- as.numeric(unique_depth_QC$depth_26.4den)
-unique_depth_QC$depth_26.6den <- as.numeric(unique_depth_QC$depth_26.6den)
-unique_depth_QC$depth_26.8den <- as.numeric(unique_depth_QC$depth_26.8den)
-unique_depth_QC$depth_27den <- as.numeric(unique_depth_QC$depth_27den)
-
-contour_QC_plot <- ggplot(glider_VI_QC %>% 
-                                 drop_na(temperature), 
-       aes(y=-depth, x=distance_km)) +
-  geom_point(aes(col = temperature)) + 
-  theme_DOM() +
-  scale_color_viridis() + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
-  stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
-  stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
-  ylim(-1000,0)
+# 
+# glider_VI_QC <- glider_VI %>%
+#   dplyr::ungroup() %>%
+#   dplyr::filter(ID == "CAN_QC_shallow")
+# 
+# dis_QC_min <- min(glider_VI_QC$distance_km)
+# dis_QC_max <- max(glider_VI_QC$distance_km)
+# dis_QC_range <- seq(11.2, 125.1, by=0.2)
+# 
+# unique_depth_QC <- as.data.frame(matrix(data = NA, ncol = 8, nrow = length(dis_QC_range)))
+# colnames(unique_depth_QC) <- colnames(unique_depth_WA)
+# unique_depth_QC$ID <- "CAN_QC_shallow"
+# unique_depth_QC$distance_km <- dis_QC_range
+# 
+# 
+# for(i in 1:nrow(unique_depth_QC)){
+# 
+#     xx <- glider_VI_QC %>% 
+#       filter(distance_km >= unique_depth_QC$distance_km[i] & 
+#                distance_km < unique_depth_QC$distance_km[i] + 0.2)
+#     xx$density <- round(xx$density, digits = 1)
+#     
+#     yy <- xx %>% filter(density == 1026)
+#     if(nrow(yy) > 0){
+#       unique_depth_QC$depth_26den[i] <- - mean(yy$depth)
+#       }else{
+#     if(nrow(yy) == 0){unique_depth_QC$depth_26den[i] <- NA}}
+#     
+#     zz <- xx %>% filter(density == 1026.2)
+#     if(nrow(zz) > 0){
+#       unique_depth_QC$depth_26.2den[i] <- - mean(zz$depth)
+#       }else{
+#     if(nrow(zz) == 0){unique_depth_QC$depth_26.2den[i] <- NA}}
+#     
+#     aa <- xx %>% filter(density == 1026.4)
+#     if(nrow(aa) > 0){
+#       unique_depth_QC$depth_26.4den[i] <- - mean(aa$depth)
+#       }else{
+#     if(nrow(aa) == 0){unique_depth_QC$depth_26.4den[i] <- NA}}
+#     
+#     bb <- xx %>% filter(density == 1026.6)
+#     if(nrow(bb) > 0){
+#       unique_depth_QC$depth_26.6den[i] <- - mean(bb$depth)
+#       }else{
+#     if(nrow(bb) == 0){unique_depth_QC$depth_26.6den[i] <- NA}}
+#     
+#     cc <- xx %>% filter(density == 1026.8)
+#     if(nrow(cc) > 0){
+#       unique_depth_QC$depth_26.8den[i] <- - mean(cc$depth)
+#       }else{
+#     if(nrow(cc) == 0){unique_depth_QC$depth_26.8den[i] <- NA}}
+#     
+#     dd <- xx %>% filter(density == 1027)
+#     if(nrow(dd) > 0){
+#       unique_depth_QC$depth_26den[i] <- - mean(dd$depth)
+#       }else{
+#     if(nrow(dd) == 0){unique_depth_QC$depth_26den[i] <- NA}}
+# }
+# 
+# unique_depth_QC$depth_26den <- as.numeric(unique_depth_QC$depth_26den)
+# unique_depth_QC$depth_26.2den <- as.numeric(unique_depth_QC$depth_26.2den)
+# unique_depth_QC$depth_26.4den <- as.numeric(unique_depth_QC$depth_26.4den)
+# unique_depth_QC$depth_26.6den <- as.numeric(unique_depth_QC$depth_26.6den)
+# unique_depth_QC$depth_26.8den <- as.numeric(unique_depth_QC$depth_26.8den)
+# unique_depth_QC$depth_27den <- as.numeric(unique_depth_QC$depth_27den)
+# 
+# contour_QC_plot <- ggplot(glider_VI_QC %>% 
+#                                  drop_na(temperature), 
+#        aes(y=-depth, x=distance_km)) +
+#   geom_point(aes(col = temperature)) + 
+#   theme_DOM() +
+#   scale_color_viridis() + 
+#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "Temp") +
+#   stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.2den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.4den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.6den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_26.8den), col="lightpink", span = 0.1) +
+#   stat_smooth(unique_depth_QC, mapping = aes(x=distance_km, y=depth_27den), col="lightpink", span = 0.1) +
+#   ylim(-1000,0)
 
 ```
 
@@ -1211,13 +1210,13 @@ contour_QC_plot <- ggplot(glider_VI_QC %>%
 
 ```{r profile and contour all, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=10, fig.height=8}
 
-plot_grid(contour_QC_plot, contour_VI_plot, contour_shallow_plot, contour_deep_plot, ncol = 2)
+# plot_grid(contour_QC_plot, contour_VI_plot, contour_shallow_plot, contour_deep_plot, ncol = 2)
 
 ```
 
 
 
-### Interpolation Methods
+### WA Interpolation
 
 ```{r interpolation prep WA_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
@@ -1241,156 +1240,150 @@ estimate_var_by_depth <- function(df, target_var, target_depth, target_dist) {
   approx(data_for_depth$distance_km, data_for_depth[[var]], xout = target_dist)$y
 }
 
-interp_grid_depth_WA_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
-colnames(interp_grid_depth_WA_shallow) <- c("distance_km", "depth")
-
-WA_shallow_maxdepths <- inter_WA_shallow %>%
-  dplyr::select(distance_km_r, depth) %>%
-  group_by(distance_km_r) %>%
-  dplyr::summarise(max_depth = max(depth))
-
-for(i in 1:length(unique(inter_WA_shallow$distance_km_r))){
-
-  xx_max <- WA_shallow_maxdepths %>%
-    filter(distance_km_r == unique(inter_WA_shallow$distance_km_r)[i])
-  
-  depths_above <- seq(0, round(xx_max$max_depth[1], 1), by =0.1)
-
-  yy <- data.frame(rep(unique(inter_WA_shallow$distance_km_r)[i], times = length(depths_above)), depths_above)
-  colnames(yy) <- c("distance_km", "depth")
-  
-  interp_grid_depth_WA_shallow <- rbind(interp_grid_depth_WA_shallow, yy)
-  
-}
-
-# ggplot(interpdepth_WA_shallow, aes(y=-depth, x=distance_km)) +
-#   geom_point(aes(col = density)) +
-#   theme_DOM() +
-#   scale_color_viridis() +
-#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "density")
+# interp_grid_depth_WA_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_depth_WA_shallow) <- c("distance_km", "depth")
+# 
+# WA_shallow_maxdepths <- inter_WA_shallow %>%
+#   dplyr::select(distance_km_r, depth) %>%
+#   group_by(distance_km_r) %>%
+#   dplyr::summarise(max_depth = max(depth))
+# 
+# for(i in 1:length(unique(inter_WA_shallow$distance_km_r))){
+# 
+#   xx_max <- WA_shallow_maxdepths %>%
+#     filter(distance_km_r == unique(inter_WA_shallow$distance_km_r)[i])
+#   
+#   depths_above <- seq(0, round(xx_max$max_depth[1], 1), by =0.1)
+# 
+#   yy <- data.frame(rep(unique(inter_WA_shallow$distance_km_r)[i], times = length(depths_above)), depths_above)
+#   colnames(yy) <- c("distance_km", "depth")
+#   
+#   interp_grid_depth_WA_shallow <- rbind(interp_grid_depth_WA_shallow, yy)
+#   
+# }
 
 # ggplot(WA_shallow_maxdepths, aes(y=-max_depth, x=distance_km_r)) +
 #   geom_point() +
 #   geom_smooth() 
 
-WA_shallow_maxdepths <- WA_shallow_maxdepths %>%
-  dplyr::filter(distance_km_r < 55 | (distance_km_r > 55 & max_depth > 130))
-
-max_WA_shallow_dist <- max(WA_shallow_maxdepths$distance_km_r)
-min_WA_shallow_dist <- min(WA_shallow_maxdepths$distance_km_r)
-seq_WA_shallow_dist <- seq(min_WA_shallow_dist, max_WA_shallow_dist, by = 0.1)
-
-smooth_WA_shallow <- data.frame(distance_km = seq(min_WA_shallow_dist, max_WA_shallow_dist, by = 0.1), 
-                                depth_smooth = predict(loess(max_depth~distance_km_r,WA_shallow_maxdepths), seq_WA_shallow_dist))
+# WA_shallow_maxdepths <- WA_shallow_maxdepths %>%
+#   dplyr::filter(distance_km_r < 55 | (distance_km_r > 55 & max_depth > 130))
+# 
+# max_WA_shallow_dist <- max(WA_shallow_maxdepths$distance_km_r)
+# min_WA_shallow_dist <- min(WA_shallow_maxdepths$distance_km_r)
+# seq_WA_shallow_dist <- seq(min_WA_shallow_dist, max_WA_shallow_dist, by = 0.1)
+# 
+# smooth_WA_shallow <- data.frame(distance_km = seq(min_WA_shallow_dist, max_WA_shallow_dist, by = 0.1), 
+#                                 depth_smooth = predict(loess(max_depth~distance_km_r,WA_shallow_maxdepths), seq_WA_shallow_dist))
 # ggplot(WA_shallow_maxdepths, aes(y=-max_depth, x=distance_km_r)) +
 #   geom_point() +
 #   geom_smooth() +
 #   geom_smooth(smooth_WA_shallow, mapping = aes(x = distance_km, y = -depth_smooth), color = "pink", alpha = 0.3)
 
-interp_grid_dist_WA_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
-colnames(interp_grid_dist_WA_shallow) <- c("distance_km", "depth")
+# interp_grid_dist_WA_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_dist_WA_shallow) <- c("distance_km", "depth")
+# 
+# for(i in 1:length(unique(interp_grid_depth_WA_shallow$depth))){
+# 
+#   xx_smooth <- smooth_WA_shallow %>%
+#     filter(depth_smooth <= unique(interp_grid_depth_WA_shallow$depth)[i])
+#   
+#   if(nrow(xx_smooth) == 0){
+#     yy <- data.frame(seq_WA_shallow_dist, rep(unique(interp_grid_depth_WA_shallow$depth)[i], times = length(seq_WA_shallow_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+#   
+#     interp_grid_dist_WA_shallow <- rbind(interp_grid_dist_WA_shallow, yy)
+#   } else {
+#     xx_seq_dist <- seq_WA_shallow_dist[seq_WA_shallow_dist >= max(xx_smooth$distance_km)]
+#     
+#     yy <- data.frame(xx_seq_dist, rep(unique(interp_grid_depth_WA_shallow$depth)[i], times = length(xx_seq_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+#     
+#     interp_grid_dist_WA_shallow <- rbind(interp_grid_dist_WA_shallow, yy)
+#   }
+# }
 
-for(i in 1:length(unique(interp_grid_depth_WA_shallow$depth))){
-
-  xx_smooth <- smooth_WA_shallow %>%
-    filter(depth_smooth <= unique(interp_grid_depth_WA_shallow$depth)[i])
-  
-  if(nrow(xx_smooth) == 0){
-    yy <- data.frame(seq_WA_shallow_dist, rep(unique(interp_grid_depth_WA_shallow$depth)[i], times = length(seq_WA_shallow_dist)))
-    colnames(yy) <- c("distance_km", "depth")
-  
-    interp_grid_dist_WA_shallow <- rbind(interp_grid_dist_WA_shallow, yy)
-  } else {
-    xx_seq_dist <- seq_WA_shallow_dist[seq_WA_shallow_dist >= max(xx_smooth$distance_km)]
-    
-    yy <- data.frame(xx_seq_dist, rep(unique(interp_grid_depth_WA_shallow$depth)[i], times = length(xx_seq_dist)))
-    colnames(yy) <- c("distance_km", "depth")
-    
-    interp_grid_dist_WA_shallow <- rbind(interp_grid_dist_WA_shallow, yy)
-  }
-}
+# write.csv(interp_grid_dist_WA_shallow, "Rasters/interp_grid_dist_WA_shallow.csv", row.names = FALSE)
+interp_grid_dist_WA_shallow <- read.csv("Rasters/interp_grid_dist_WA_shallow.csv")
 
 ```
 
 ```{r interpolation prep WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-inter_WA_deep <- glider_WA %>%
-  filter(ID == "USA_WA_deep" & depth != "NaN")  %>%
-  mutate(distance_km_r = round(distance_km, 1))
-
-interp_grid_depth_WA_deep <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
-colnames(interp_grid_depth_WA_deep) <- c("distance_km", "depth")
-
-WA_deep_maxdepths <- inter_WA_deep %>%
-  dplyr::select(distance_km_r, depth) %>%
-  group_by(distance_km_r) %>%
-  dplyr::summarise(max_depth = max(depth))
-
-for(i in 1:length(unique(inter_WA_deep$distance_km_r))){
-
-  xx_max <- WA_deep_maxdepths %>%
-    filter(distance_km_r == unique(inter_WA_deep$distance_km_r)[i])
-
-  depths_above <- seq(0, round(xx_max$max_depth[1], 1), by =0.1)
-
-  yy <- data.frame(rep(unique(inter_WA_deep$distance_km_r)[i], times = length(depths_above)), depths_above)
-  colnames(yy) <- c("distance_km", "depth")
-
-  interp_grid_depth_WA_deep <- rbind(interp_grid_depth_WA_deep, yy)
-
-}
-
-# ggplot(interpdepth_WA_deep, aes(y=-depth, x=distance_km)) +
-#   geom_point(aes(col = density)) +
-#   theme_DOM() +
-#   scale_color_viridis() +
-#   labs(x ="Distance from shore (km)", y="Depth (m)", color = "density")
+# inter_WA_deep <- glider_WA %>%
+#   filter(ID == "USA_WA_deep" & depth != "NaN")  %>%
+#   mutate(distance_km_r = round(distance_km, 1))
+# 
+# interp_grid_depth_WA_deep <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_depth_WA_deep) <- c("distance_km", "depth")
+# 
+# WA_deep_maxdepths <- inter_WA_deep %>%
+#   dplyr::select(distance_km_r, depth) %>%
+#   group_by(distance_km_r) %>%
+#   dplyr::summarise(max_depth = max(depth))
+# 
+# for(i in 1:length(unique(inter_WA_deep$distance_km_r))){
+# 
+#   xx_max <- WA_deep_maxdepths %>%
+#     filter(distance_km_r == unique(inter_WA_deep$distance_km_r)[i])
+# 
+#   depths_above <- seq(0, round(xx_max$max_depth[1], 1), by =0.1)
+# 
+#   yy <- data.frame(rep(unique(inter_WA_deep$distance_km_r)[i], times = length(depths_above)), depths_above)
+#   colnames(yy) <- c("distance_km", "depth")
+# 
+#   interp_grid_depth_WA_deep <- rbind(interp_grid_depth_WA_deep, yy)
+# 
+# }
 
 # ggplot(WA_deep_maxdepths, aes(y=-max_depth, x=distance_km_r)) +
 #   geom_point() +
 #   geom_smooth()
 
-WA_deep_maxdepths <- WA_deep_maxdepths %>%
-  dplyr::filter(distance_km_r < 75 | (distance_km_r > 75 & max_depth > 900))
+# WA_deep_maxdepths <- WA_deep_maxdepths %>%
+#   dplyr::filter(distance_km_r < 75 | (distance_km_r > 75 & max_depth > 900))
+# 
+# max_WA_deep_dist <- max(WA_deep_maxdepths$distance_km_r)
+# min_WA_deep_dist <- min(WA_deep_maxdepths$distance_km_r)
+# seq_WA_deep_dist <- seq(min_WA_deep_dist, max_WA_deep_dist, by = 0.1)
+# 
+# smooth_WA_deep <- data.frame(distance_km = seq(min_WA_deep_dist, max_WA_deep_dist, by = 0.1),
+#                                 depth_smooth = predict(loess(max_depth~distance_km_r,
+#                                                              WA_deep_maxdepths), seq_WA_deep_dist))
+# ggplot(WA_deep_maxdepths, aes(y=-max_depth, x=distance_km_r)) +
+#   geom_point() +
+#   geom_smooth() +
+#   geom_smooth(smooth_WA_deep, mapping = aes(x = distance_km, y = -depth_smooth), color = "pink", alpha = 0.3)
+# 
+# interp_grid_dist_WA_deep <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_dist_WA_deep) <- c("distance_km", "depth")
+# 
+# for(i in 1:length(unique(interp_grid_depth_WA_deep$depth))){
+# 
+#   xx_smooth <- smooth_WA_deep %>%
+#     filter(depth_smooth <= unique(interp_grid_depth_WA_deep$depth)[i])
+# 
+#   if(nrow(xx_smooth) == 0){
+#     yy <- data.frame(seq_WA_deep_dist, rep(unique(interp_grid_depth_WA_deep$depth)[i], times = length(seq_WA_deep_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+# 
+#     interp_grid_dist_WA_deep <- rbind(interp_grid_dist_WA_deep, yy)
+#   } else {
+#     xx_seq_dist <- seq_WA_deep_dist[seq_WA_deep_dist >= max(xx_smooth$distance_km)]
+# 
+#     yy <- data.frame(xx_seq_dist, rep(unique(interp_grid_depth_WA_deep$depth)[i], times = length(xx_seq_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+# 
+#     interp_grid_dist_WA_deep <- rbind(interp_grid_dist_WA_deep, yy)
+#   }
+# }
 
-max_WA_deep_dist <- max(WA_deep_maxdepths$distance_km_r)
-min_WA_deep_dist <- min(WA_deep_maxdepths$distance_km_r)
-seq_WA_deep_dist <- seq(min_WA_deep_dist, max_WA_deep_dist, by = 0.1)
-
-smooth_WA_deep <- data.frame(distance_km = seq(min_WA_deep_dist, max_WA_deep_dist, by = 0.1),
-                                depth_smooth = predict(loess(max_depth~distance_km_r,
-                                                             WA_deep_maxdepths), seq_WA_deep_dist))
-ggplot(WA_deep_maxdepths, aes(y=-max_depth, x=distance_km_r)) +
-  geom_point() +
-  geom_smooth() +
-  geom_smooth(smooth_WA_deep, mapping = aes(x = distance_km, y = -depth_smooth), color = "pink", alpha = 0.3)
-
-interp_grid_dist_WA_deep <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
-colnames(interp_grid_dist_WA_deep) <- c("distance_km", "depth")
-
-for(i in 1:length(unique(interp_grid_depth_WA_deep$depth))){
-
-  xx_smooth <- smooth_WA_deep %>%
-    filter(depth_smooth <= unique(interp_grid_depth_WA_deep$depth)[i])
-
-  if(nrow(xx_smooth) == 0){
-    yy <- data.frame(seq_WA_deep_dist, rep(unique(interp_grid_depth_WA_deep$depth)[i], times = length(seq_WA_deep_dist)))
-    colnames(yy) <- c("distance_km", "depth")
-
-    interp_grid_dist_WA_deep <- rbind(interp_grid_dist_WA_deep, yy)
-  } else {
-    xx_seq_dist <- seq_WA_deep_dist[seq_WA_deep_dist >= max(xx_smooth$distance_km)]
-
-    yy <- data.frame(xx_seq_dist, rep(unique(interp_grid_depth_WA_deep$depth)[i], times = length(xx_seq_dist)))
-    colnames(yy) <- c("distance_km", "depth")
-
-    interp_grid_dist_WA_deep <- rbind(interp_grid_dist_WA_deep, yy)
-  }
-}
-
-# interp_grid_dist_WA_deep <- read.csv("interp_grid_dist_WA_deep.csv")
+# write.csv(interp_grid_dist_WA_deep, "Rasters/interp_grid_dist_WA_deep.csv", row.names = FALSE)
+interp_grid_dist_WA_deep <- read.csv("Rasters/interp_grid_dist_WA_deep.csv")
 
 ```
+
+
 
 
 #### Density
@@ -1399,32 +1392,34 @@ for(i in 1:length(unique(interp_grid_depth_WA_deep$depth))){
 
 # est_var_by_dist(inter_WA_shallow, "density", 66.7, c(6.3, 8, 9.3, 10))
 
-interp_depth_dens_WA_shallow <- interp_grid_depth_WA_shallow %>%
-  group_by(distance_km) %>%
-  mutate(density = est_var_by_dist(inter_WA_shallow, "density", distance_km[1], depth)) %>%
-  drop_na(density)
-
-check_WA <- interp_depth_dens_WA_shallow %>%
-  group_by(depth) %>%
-  summarize(reps = length(depth)) %>%
-  filter(reps >= 2)
-
-raster_dens_WA_shallow <- interp_grid_dist_WA_shallow %>%
-  group_by(depth) %>%
-  dplyr::filter(depth %in% check_WA$depth) %>%
-  mutate(density = estimate_var_by_depth(interp_depth_dens_WA_shallow, "density", depth[1], distance_km)) %>%
-  drop_na(density)
-
-raster_dens_WA_shallow$density <- raster_dens_WA_shallow$density - 1000
-
-ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
-  geom_raster() +
-  scale_y_reverse() +
-  scale_fill_viridis() +
-  theme_DOM() +
-  labs(y="Depth (m)", x = "Distance (km)", fill = "Density (kg/m3)")
+# interp_depth_dens_WA_shallow <- interp_grid_depth_WA_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(density = est_var_by_dist(inter_WA_shallow, "density", distance_km[1], depth)) %>%
+#   drop_na(density)
+# 
+# check_WA <- interp_depth_dens_WA_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_dens_WA_shallow <- interp_grid_dist_WA_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(density = estimate_var_by_depth(interp_depth_dens_WA_shallow, "density", depth[1], distance_km)) %>%
+#   drop_na(density)
+# 
+# raster_dens_WA_shallow$density <- raster_dens_WA_shallow$density - 1000
+# 
+# ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Density (kg/m3)")
 
 ```
+
+
 ```{r interpolation density WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
 # est_var_by_dist(inter_WA_deep, "density", 66.7, c(6.3, 8, 9.3, 10))
@@ -1433,20 +1428,20 @@ ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
 #   group_by(distance_km) %>%
 #   mutate(density = est_var_by_dist(inter_WA_deep, "density", distance_km[1], depth)) %>%
 #   drop_na(density)
-#
+# 
 # check_WA <- interp_depth_dens_WA_deep %>%
 #   group_by(depth) %>%
 #   summarize(reps = length(depth)) %>%
 #   filter(reps >= 2)
-#
+# 
 # raster_dens_WA_deep <- interp_grid_dist_WA_deep %>%
 #   group_by(depth) %>%
 #   dplyr::filter(depth %in% check_WA$depth) %>%
 #   mutate(density = estimate_var_by_depth(interp_depth_dens_WA_deep, "density", depth[1], distance_km)) %>%
 #   drop_na(density)
-#
+# 
 # raster_dens_WA_deep$density <- raster_dens_WA_deep$density - 1000
-#
+# 
 # ggplot(raster_dens_WA_deep, aes(distance_km, depth, fill = density)) +
 #   geom_raster() +
 #   scale_y_reverse() +
@@ -1456,89 +1451,171 @@ ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
 
 ```
 
-```{r density contour WA_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
-
-dens_cont_WA_shallow <- as.data.frame(matrix(data=NA, ncol = 7, nrow = length(unique(raster_dens_WA_shallow$distance_km))))
-colnames(dens_cont_WA_shallow) <- c("distance_km", "den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27")
-dens_cont_WA_shallow$distance_km <- unique(raster_dens_WA_shallow$distance_km)
-  
-for(i in 1:nrow(dens_cont_WA_shallow)){
-  
-  xx <- raster_dens_WA_shallow[raster_dens_WA_shallow$distance_km == unique(raster_dens_WA_shallow$distance_km)[i],]
-  
-  xx_max_depth <- max(xx$depth)
-  
-  xx_den_26 <- xx[which.min(abs(xx$density - 26)),]$depth
-  if(xx_den_26 != xx_max_depth){
-    dens_cont_WA_shallow$den_26[i] <- xx_den_26
-  } else {
-    dens_cont_WA_shallow$den_26[i] <- NA
-  }
-    
-   xx_den_26.2 <- xx[which.min(abs(xx$density - 26.2)),]$depth
-  if(xx_den_26.2 != xx_max_depth){
-    dens_cont_WA_shallow$den_26.2[i] <- xx_den_26.2
-  } else {
-    dens_cont_WA_shallow$den_26.2[i] <- NA
-  }
-  
-   xx_den_26.4 <- xx[which.min(abs(xx$density - 26.4)),]$depth
-  if(xx_den_26.4 != xx_max_depth){
-    dens_cont_WA_shallow$den_26.4[i] <- xx_den_26.4
-  } else {
-    dens_cont_WA_shallow$den_26.4[i] <- NA
-  }
-   
-   xx_den_26.6 <- xx[which.min(abs(xx$density - 26.6)),]$depth
-  if(xx_den_26.6 != xx_max_depth){
-    dens_cont_WA_shallow$den_26.6[i] <- xx_den_26.6
-  } else {
-    dens_cont_WA_shallow$den_26.6[i] <- NA
-  }
-   
-   xx_den_26.8 <- xx[which.min(abs(xx$density - 26.8)),]$depth
-  if(xx_den_26.8 != xx_max_depth){
-    dens_cont_WA_shallow$den_26.8[i] <- xx_den_26.8
-  } else {
-    dens_cont_WA_shallow$den_26.8[i] <- NA
-  }
-   
-   xx_den_27 <- xx[which.min(abs(xx$density - 27)),]$depth
-  if(xx_den_27 != xx_max_depth){
-    dens_cont_WA_shallow$den_27[i] <- xx_den_27
-  } else {
-    dens_cont_WA_shallow$den_27[i] <- NA
-  }
-}
-
-dens_cont_WA_shallow_27 <- dens_cont_WA_shallow %>%
-  filter(distance_km > 35) %>%
-  dplyr::select(distance_km, den_27) %>%
-  drop_na(den_27)
-
-dens_cont_WA_shallow_26.8 <- dens_cont_WA_shallow %>%
-  filter(distance_km > 25) %>%
-  dplyr::select(distance_km, den_26.8) %>%
-  drop_na(den_26.8)
-
-dens_cont_WA_shallow_26.6 <- dens_cont_WA_shallow %>%
-  filter(distance_km > 15) %>%
-  dplyr::select(distance_km, den_26.6) %>%
-  drop_na(den_26.6)
 
 
-ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
-  geom_raster() +
-  scale_y_reverse() +
-  scale_fill_viridis() +
+```{r combine the WA rasters density, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# raster_dens_WA <- rbind(raster_dens_WA_shallow, raster_dens_WA_deep) %>%
+#   group_by(distance_km, depth) %>%
+#   summarize(density = mean(density))
+# 
+# write.csv(raster_dens_WA, file="Rasters/raster_dens_WA.csv", row.names = FALSE)
+
+raster_dens_WA <- read.csv("Rasters/raster_dens_WA.csv")
+
+# ggplot(raster_dens_WA, aes(distance_km, depth, col = density)) +
+#   geom_point() +
+#   scale_y_reverse() +
+#   scale_color_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)")
+
+```
+
+
+```{r density contour WA, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=8}
+
+# dens_cont_WA <- as.data.frame(matrix(data=NA, ncol = 7, nrow = length(unique(raster_dens_WA$distance_km))))
+# colnames(dens_cont_WA) <- c("distance_km", "den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27")
+# dens_cont_WA$distance_km <- unique(raster_dens_WA$distance_km)
+#   
+# for(i in 1:nrow(dens_cont_WA)){
+# 
+#   xx <- raster_dens_WA[raster_dens_WA$distance_km == unique(raster_dens_WA$distance_km)[i],]
+#   
+#   xx_max_depth <- max(xx$depth)
+#   
+#   xx_den_26 <- xx[which.min(abs(xx$density - 26)),]$depth
+#   if(xx_den_26 != xx_max_depth){
+#     dens_cont_WA$den_26[i] <- xx_den_26
+#   } else {
+#     dens_cont_WA$den_26[i] <- NA
+#   }
+#     
+#    xx_den_26.2 <- xx[which.min(abs(xx$density - 26.2)),]$depth
+#   if(xx_den_26.2 != xx_max_depth){
+#     dens_cont_WA$den_26.2[i] <- xx_den_26.2
+#   } else {
+#     dens_cont_WA$den_26.2[i] <- NA
+#   }
+#   
+#    xx_den_26.4 <- xx[which.min(abs(xx$density - 26.4)),]$depth
+#   if(xx_den_26.4 != xx_max_depth){
+#     dens_cont_WA$den_26.4[i] <- xx_den_26.4
+#   } else {
+#     dens_cont_WA$den_26.4[i] <- NA
+#   }
+#    
+#    xx_den_26.6 <- xx[which.min(abs(xx$density - 26.6)),]$depth
+#   if(xx_den_26.6 != xx_max_depth){
+#     dens_cont_WA$den_26.6[i] <- xx_den_26.6
+#   } else {
+#     dens_cont_WA$den_26.6[i] <- NA
+#   }
+#    
+#    xx_den_26.8 <- xx[which.min(abs(xx$density - 26.8)),]$depth
+#   if(xx_den_26.8 != xx_max_depth){
+#     dens_cont_WA$den_26.8[i] <- xx_den_26.8
+#   } else {
+#     dens_cont_WA$den_26.8[i] <- NA
+#   }
+#    
+#    xx_den_27 <- xx[which.min(abs(xx$density - 27)),]$depth
+#   if(xx_den_27 != xx_max_depth){
+#     dens_cont_WA$den_27[i] <- xx_den_27
+#   } else {
+#     dens_cont_WA$den_27[i] <- NA
+#   }
+# }
+# 
+# dens_cont_WA_27 <- dens_cont_WA %>%
+#   filter(distance_km > 35) %>%
+#   dplyr::select(distance_km, den_27) %>%
+#   drop_na(den_27)
+# 
+# dens_cont_WA_26.8 <- dens_cont_WA %>%
+#   filter(distance_km > 25) %>%
+#   dplyr::select(distance_km, den_26.8) %>%
+#   drop_na(den_26.8)
+# 
+# dens_cont_WA_26.6 <- dens_cont_WA %>%
+#   filter(distance_km > 15) %>%
+#   dplyr::select(distance_km, den_26.6) %>%
+#   drop_na(den_26.6)
+# 
+# 
+# dens_cont_WA$den_26.6 <- NULL
+# dens_cont_WA$den_26.8 <- NULL
+# dens_cont_WA$den_27 <- NULL
+# dens_cont_WA <- join(dens_cont_WA, dens_cont_WA_26.6)
+# dens_cont_WA <- join(dens_cont_WA, dens_cont_WA_26.8)
+# dens_cont_WA <- join(dens_cont_WA, dens_cont_WA_27)
+# 
+# write.csv(dens_cont_WA, file="Rasters/dens_cont_WA.csv", row.names = FALSE)
+# 
+# dens_cont_WA <- read.csv("Rasters/dens_cont_WA.csv")
+# dens_cont_WA$X <- NULL
+# 
+# smooth_dens_WA <- data.frame(distance_km = dens_cont_WA$distance_km,
+#                             smooth_26 = predict(loess(den_26~distance_km,dens_cont_WA), 
+#                                                    dens_cont_WA$distance_km))
+# 
+# smooth_dens_WA <- data.frame(smooth_dens_WA,
+#                             smooth_26.2 = predict(loess(den_26.2~distance_km,dens_cont_WA), 
+#                                                    dens_cont_WA$distance_km))
+# 
+# smooth_dens_WA <- data.frame(smooth_dens_WA,
+#                             smooth_26.4 = predict(loess(den_26.4~distance_km,dens_cont_WA), 
+#                                                    dens_cont_WA$distance_km))
+# 
+# smooth_dens_WA <- data.frame(smooth_dens_WA,
+#                             smooth_26.6 = predict(loess(den_26.6~distance_km,dens_cont_WA), 
+#                                                    dens_cont_WA$distance_km))
+# 
+# smooth_dens_WA <- data.frame(smooth_dens_WA,
+#                             smooth_26.8 = predict(loess(den_26.8~distance_km,dens_cont_WA), 
+#                                                    dens_cont_WA$distance_km))
+# 
+# smooth_dens_WA <- data.frame(smooth_dens_WA,
+#                             smooth_27 = predict(loess(den_27~distance_km,dens_cont_WA), 
+#                                                    dens_cont_WA$distance_km))
+# 
+# long_smooth_dens_WA <- smooth_dens_WA %>%
+#   pivot_longer(
+#     cols = !distance_km,
+#     names_to = c("isopycnal"),
+#     values_to = "depth"
+#   )
+# 
+# long_dens_cont_WA <- dens_cont_WA %>%
+#   pivot_longer(
+#     cols = !distance_km,
+#     names_to = c("isopycnal"),
+#     values_to = "depth"
+#   )
+# 
+# long_dens_cont_WA$smooth_depth <- long_smooth_dens_WA$depth
+# 
+# write.csv(long_dens_cont_WA, file="Rasters/long_dens_cont_WA.csv", row.names = FALSE)
+
+long_dens_cont_WA <- read.csv("Rasters/long_dens_cont_WA.csv")
+
+# ggplot(raster_dens_WA, aes(distance_km, depth, col = density)) +
+#   geom_point() +
+#   scale_y_reverse() + 
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
+#   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+
+ggplot(raster_dens_WA %>% filter(depth <300), aes(distance_km, depth, col = density)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
-  labs(y="Depth (m)", x = "Distance (km)", fill = "Density (kg/m3)") +
-  geom_smooth(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.2, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.4, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow_26.6, mapping = aes(x=distance_km, y=den_26.6, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow_26.8, mapping = aes(x=distance_km, y=den_26.8, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow_27, mapping = aes(x=distance_km, y=den_27, fill=NULL), col="red", span = 0.1)
+  labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
 
 ```
 
@@ -1548,68 +1625,245 @@ ggplot(raster_dens_WA_shallow, aes(distance_km, depth, fill = density)) +
 
 # est_var_by_dist(inter_WA_shallow, "temperature", 66.7, c(6.3, 8, 9.3, 10))
 
-interp_depth_temp_WA_shallow <- interp_grid_depth_WA_shallow %>%
-  group_by(distance_km) %>%
-  mutate(temperature = est_var_by_dist(inter_WA_shallow, "temperature", distance_km[1], depth)) %>%
-  drop_na(temperature)
+# interp_depth_temp_WA_shallow <- interp_grid_depth_WA_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(temperature = est_var_by_dist(inter_WA_shallow, "temperature", distance_km[1], depth)) %>%
+#   drop_na(temperature)
+# 
+# check_WA <- interp_depth_temp_WA_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_temp_WA_shallow <- interp_grid_dist_WA_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(temperature = estimate_var_by_depth(interp_depth_temp_WA_shallow, "temperature", depth[1], distance_km)) %>%
+#   drop_na(temperature)
+# 
+# ggplot(raster_temp_WA_shallow, aes(distance_km, depth, fill = temperature)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Temperature (C)")
 
-check_WA <- interp_depth_temp_WA_shallow %>%
-  group_by(depth) %>%
-  summarize(reps = length(depth)) %>%
-  filter(reps >= 2)
+```
 
-raster_temp_WA_shallow <- interp_grid_dist_WA_shallow %>%
-  group_by(depth) %>%
-  dplyr::filter(depth %in% check_WA$depth) %>%
-  mutate(temperature = estimate_var_by_depth(interp_depth_temp_WA_shallow, "temperature", depth[1], distance_km)) %>%
-  drop_na(temperature)
 
-ggplot(raster_temp_WA_shallow, aes(distance_km, depth, fill = temperature)) +
-  geom_raster() +
-  scale_y_reverse() +
-  scale_fill_viridis() +
+```{r interpolation temperature WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_deep, "temperature", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_temp_WA_deep <- interp_grid_depth_WA_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(temperature = est_var_by_dist(inter_WA_deep, "temperature", distance_km[1], depth)) %>%
+#   drop_na(temperature)
+# 
+# check_WA <- interp_depth_temp_WA_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_temp_WA_deep <- interp_grid_dist_WA_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(temperature = estimate_var_by_depth(interp_depth_temp_WA_deep, "temperature", depth[1], distance_km)) %>%
+#   drop_na(temperature)
+# 
+# ggplot(raster_temp_WA_deep, aes(distance_km, depth, fill = temperature)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Temperature (C)")
+
+```
+
+
+
+```{r combine the WA rasters temperature, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# raster_temp_WA <- rbind(raster_temp_WA_shallow, raster_temp_WA_deep) %>%
+#   group_by(distance_km, depth) %>%
+#   summarize(temperature = mean(temperature))
+# 
+# write.csv(raster_temp_WA, file="Rasters/raster_temp_WA.csv", row.names = FALSE)
+
+raster_temp_WA <- read.csv("Rasters/raster_temp_WA.csv")
+
+# ggplot(raster_temp_WA, aes(distance_km, depth, col = temperature)) +
+#   geom_point() +
+#   scale_y_reverse() + 
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "Temperature (C)") +
+#   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+
+ggplot(raster_temp_WA %>% filter(depth <300), aes(distance_km, depth, col = temperature)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
-  labs(y="Depth (m)", x = "Distance (km)", fill = "Temperature (C)") +
-  geom_smooth(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.2, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow, mapping = aes(x=distance_km, y=den_26.4, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow_26.6, mapping = aes(x=distance_km, y=den_26.6, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow_26.8, mapping = aes(x=distance_km, y=den_26.8, fill=NULL), col="red", span = 0.1) +
-  geom_smooth(dens_cont_WA_shallow_27, mapping = aes(x=distance_km, y=den_27, fill=NULL), col="red", span = 0.1)
+  labs(y="Depth (m)", x = "Distance (km)", col = "Temperature (C)") +
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
 
 ```
 
 ```{r isopycnal for temperature, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
-long_dens_cont_WA_shallow <- dens_cont_WA_shallow %>%
-  dplyr::select(distance_km, den_26, den_26.2, den_26.4) %>%
-  pivot_longer(cols = c("den_26", "den_26.2", "den_26.4"), names_to = "isopycnal", values_to = "depth")
+# for(i in 1:nrow(long_dens_cont_WA)){
+# 
+#     if(is.na(long_dens_cont_WA$smooth_depth[i]) == FALSE){
+#       
+#       xx <- raster_temp_WA[(raster_temp_WA$distance_km == 
+#                                                         long_dens_cont_WA$distance_km[i] & 
+#                                                       raster_temp_WA$depth == 
+#                                                         round(long_dens_cont_WA$smooth_depth[i],1)),]
+#       
+#       if(nrow(xx) > 0){
+#         long_dens_cont_WA$temperature[i] <- xx$temperature
+#       } else {
+#           long_dens_cont_WA$temperature[i] <- NA
+#         }
+#   }else{ long_dens_cont_WA$temperature[i] <- NA}
+# }
 
-long_dens_cont_WA_shallow_26.6 <- dens_cont_WA_shallow_26.6 %>%
-  pivot_longer(cols = c("den_26.6"), names_to = "isopycnal", values_to = "depth")
+isopycnals_WA <- read.csv(here::here("Rasters", "isopycnals_WA.csv"))
 
-long_dens_cont_WA_shallow_26.8 <- dens_cont_WA_shallow_26.8 %>%
-  pivot_longer(cols = c("den_26.8"), names_to = "isopycnal", values_to = "depth")
+isopycnals_WA$isopycnal <- as.factor(isopycnals_WA$isopycnal)
 
-long_dens_cont_WA_shallow_27 <- dens_cont_WA_shallow_27 %>%
-  pivot_longer(cols = c("den_27"), names_to = "isopycnal", values_to = "depth")
-
-long_dens_cont_WA_shallow <- rbind(long_dens_cont_WA_shallow, long_dens_cont_WA_shallow_26.6, long_dens_cont_WA_shallow_26.8, long_dens_cont_WA_shallow_27)
-
-for(i in 1:nrow(long_dens_cont_WA_shallow)){
-  long_dens_cont_WA_shallow$temperature[i] <- raster_temp_WA_shallow[(raster_temp_WA_shallow$distance_km == 
-                                                                 long_dens_cont_WA_shallow$distance_km[i] & 
-                                                                 raster_temp_WA_shallow$depth ==  
-                                                                 long_dens_cont_WA_shallow$depth[i]),]$temperature
-}
-long_dens_cont_WA_shallow$isopycnal <- as.factor(long_dens_cont_WA_shallow$isopycnal)
-
-ggplot(long_dens_cont_WA_shallow, aes(distance_km, temperature)) +
+ggplot(isopycnals_WA, aes(distance_km, temperature, col = isopycnal)) +
   geom_point() +
   scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
   theme_DOM() +
-  facet_wrap(vars(isopycnal), ncol = 2) 
-  labs(x="Distance (km)", y="Temperature (C)")
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Temperature (C)") +
+  theme(legend.position = "none")
+
+```
+
+#### Salinity
+
+```{r interpolation salinity, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_shallow, "salinity", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_sal_WA_shallow <- interp_grid_depth_WA_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(salinity = est_var_by_dist(inter_WA_shallow, "salinity", distance_km[1], depth)) %>%
+#   drop_na(salinity)
+# 
+# check_WA <- interp_depth_sal_WA_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_sal_WA_shallow <- interp_grid_dist_WA_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(salinity = estimate_var_by_depth(interp_depth_sal_WA_shallow, "salinity", depth[1], distance_km)) %>%
+#   drop_na(salinity)
+# 
+# ggplot(raster_sal_WA_shallow, aes(distance_km, depth, fill = salinity)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Salinity (ppt)")
+
+```
+
+
+```{r interpolation salinity WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_deep, "salinity", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_sal_WA_deep <- interp_grid_depth_WA_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(salinity = est_var_by_dist(inter_WA_deep, "salinity", distance_km[1], depth)) %>%
+#   drop_na(salinity)
+# 
+# check_WA <- interp_depth_sal_WA_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_sal_WA_deep <- interp_grid_dist_WA_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(salinity = estimate_var_by_depth(interp_depth_sal_WA_deep, "salinity", depth[1], distance_km)) %>%
+#   drop_na(salinity)
+# 
+# ggplot(raster_sal_WA_deep, aes(distance_km, depth, fill = salinity)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Salinity (ppt)")
+
+```
+
+
+
+```{r combine the WA rasters salinity, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# raster_sal_WA <- rbind(raster_sal_WA_shallow, raster_sal_WA_deep) %>%
+#   group_by(distance_km, depth) %>%
+#   summarize(salinity = mean(salinity))
+# 
+# write.csv(raster_sal_WA, file="Rasters/raster_sal_WA.csv", row.names = FALSE)
+
+raster_sal_WA <- read.csv("Rasters/raster_sal_WA.csv")
+
+# ggplot(raster_sal_WA, aes(distance_km, depth, col = salinity)) +
+#   geom_point() +
+#   scale_y_reverse() + 
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "Salinity (ppt)") +
+#   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+
+ggplot(raster_sal_WA %>% filter(depth <300), aes(distance_km, depth, col = salinity)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Salinity (ppt)") +
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for salinity, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_WA)){
+# 
+#     if(is.na(long_dens_cont_WA$smooth_depth[i]) == FALSE){
+#       
+#       xx <- raster_sal_WA[(raster_sal_WA$distance_km == 
+#                                                         long_dens_cont_WA$distance_km[i] & 
+#                                                       raster_sal_WA$depth == 
+#                                                         round(long_dens_cont_WA$smooth_depth[i],1)),]
+#       
+#       if(nrow(xx) > 0){
+#         long_dens_cont_WA$salinity[i] <- xx$salinity
+#       } else {
+#           long_dens_cont_WA$salinity[i] <- NA
+#         }
+#   }else{ long_dens_cont_WA$salinity[i] <- NA}
+# }
+
+ggplot(isopycnals_WA, aes(distance_km, salinity, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Salinity (ppt)") +
+  theme(legend.position = "none")
 
 ```
 
@@ -1617,4 +1871,1902 @@ ggplot(long_dens_cont_WA_shallow, aes(distance_km, temperature)) +
 
 
 
+#### Chlorophyll
 
+```{r interpolation chlorophyll, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_shallow, "chlorophyll", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_chl_WA_shallow <- interp_grid_depth_WA_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(chlorophyll = est_var_by_dist(inter_WA_shallow, "chlorophyll", distance_km[1], depth)) %>%
+#   drop_na(chlorophyll)
+# 
+# check_WA <- interp_depth_chl_WA_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_chl_WA_shallow <- interp_grid_dist_WA_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(chlorophyll = estimate_var_by_depth(interp_depth_chl_WA_shallow, "chlorophyll", depth[1], distance_km)) %>%
+#   drop_na(chlorophyll)
+# 
+# ggplot(raster_chl_WA_shallow, aes(distance_km, depth, fill = chlorophyll)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Chlorophyll (ug/L)")
+
+```
+
+
+```{r interpolation chlorophyll WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_deep, "chlorophyll", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_chl_WA_deep <- interp_grid_depth_WA_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(chlorophyll = est_var_by_dist(inter_WA_deep, "chlorophyll", distance_km[1], depth)) %>%
+#   drop_na(chlorophyll)
+# 
+# check_WA <- interp_depth_chl_WA_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_chl_WA_deep <- interp_grid_dist_WA_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(chlorophyll = estimate_var_by_depth(interp_depth_chl_WA_deep, "chlorophyll", depth[1], distance_km)) %>%
+#   drop_na(chlorophyll)
+# 
+# ggplot(raster_chl_WA_deep, aes(distance_km, depth, fill = chlorophyll)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Chlorophyll (ug/L)")
+
+```
+
+
+
+```{r combine the WA rasters chlorophyll, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# raster_chl_WA <- rbind(raster_chl_WA_shallow, raster_chl_WA_deep) %>%
+#   group_by(distance_km, depth) %>%
+#   summarize(chlorophyll = mean(chlorophyll))
+# 
+# write.csv(raster_chl_WA, file="Rasters/raster_chl_WA.csv", row.names = FALSE)
+
+raster_chl_WA <- read.csv("Rasters/raster_chl_WA.csv")
+
+# ggplot(raster_chl_WA, aes(distance_km, depth, col = chlorophyll)) +
+#   geom_point() +
+#   scale_y_reverse() + 
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "Chlorophyll (ug/L)") +
+#   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+ggplot(raster_chl_WA %>% filter(depth <300), aes(distance_km, depth, col = chlorophyll)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Chlorophyll (ug/L)") +
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+```
+
+```{r isopycnal for chlorophyll, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_WA)){
+# 
+#     if(is.na(long_dens_cont_WA$smooth_depth[i]) == FALSE){
+#       
+#       xx <- raster_chl_WA[(raster_chl_WA$distance_km == 
+#                                                         long_dens_cont_WA$distance_km[i] & 
+#                                                       raster_chl_WA$depth == 
+#                                                         round(long_dens_cont_WA$smooth_depth[i],1)),]
+#       
+#       if(nrow(xx) > 0){
+#         long_dens_cont_WA$chlorophyll[i] <- xx$chlorophyll
+#       } else {
+#           long_dens_cont_WA$chlorophyll[i] <- NA
+#         }
+#   }else{ long_dens_cont_WA$chlorophyll[i] <- NA}
+# }
+
+ggplot(isopycnals_WA, aes(distance_km, chlorophyll, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Chlorophyll (ug/L)") +
+  theme(legend.position = "none")
+
+```
+
+
+#### Dissolved Oxygen
+
+```{r interpolation dissolved_oxygen, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_shallow, "dissolved_oxygen", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_DO_WA_shallow <- interp_grid_depth_WA_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(dissolved_oxygen = est_var_by_dist(inter_WA_shallow, "dissolved_oxygen", distance_km[1], depth)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# check_WA <- interp_depth_DO_WA_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_DO_WA_shallow <- interp_grid_dist_WA_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(dissolved_oxygen = estimate_var_by_depth(interp_depth_DO_WA_shallow, "dissolved_oxygen", depth[1], distance_km)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# ggplot(raster_DO_WA_shallow, aes(distance_km, depth, fill = dissolved_oxygen)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "DO (umol/kg)")
+
+```
+
+
+```{r interpolation dissolved_oxygen WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_deep, "dissolved_oxygen", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_DO_WA_deep <- interp_grid_depth_WA_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(dissolved_oxygen = est_var_by_dist(inter_WA_deep, "dissolved_oxygen", distance_km[1], depth)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# check_WA <- interp_depth_DO_WA_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_DO_WA_deep <- interp_grid_dist_WA_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(dissolved_oxygen = estimate_var_by_depth(interp_depth_DO_WA_deep, "dissolved_oxygen", depth[1], distance_km)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# ggplot(raster_DO_WA_deep, aes(distance_km, depth, fill = dissolved_oxygen)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "DO (umol/kg")
+
+```
+
+
+
+```{r combine the WA rasters dissolved_oxygen, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# raster_DO_WA <- rbind(raster_DO_WA_shallow, raster_DO_WA_deep) %>%
+#   group_by(distance_km, depth) %>%
+#   summarize(dissolved_oxygen = mean(dissolved_oxygen))
+# 
+# write.csv(raster_DO_WA, file="Rasters/raster_DO_WA.csv", row.names = FALSE)
+
+raster_DO_WA <- read.csv("Rasters/raster_DO_WA.csv")
+
+# ggplot(raster_DO_WA, aes(distance_km, depth, col = dissolved_oxygen)) +
+#   geom_point() +
+#   scale_y_reverse() + 
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "DO (umol/kg") +
+#   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+ggplot(raster_DO_WA %>% filter(depth <300), aes(distance_km, depth, col = dissolved_oxygen)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "DO (umol/kg") +
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+```
+
+```{r isopycnal for dissolved_oxygen, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_WA)){
+# 
+#     if(is.na(long_dens_cont_WA$smooth_depth[i]) == FALSE){
+#       
+#       xx <- raster_DO_WA[(raster_DO_WA$distance_km == 
+#                                                         long_dens_cont_WA$distance_km[i] & 
+#                                                       raster_DO_WA$depth == 
+#                                                         round(long_dens_cont_WA$smooth_depth[i],1)),]
+#       
+#       if(nrow(xx) > 0){
+#         long_dens_cont_WA$dissolved_oxygen[i] <- xx$dissolved_oxygen
+#       } else {
+#           long_dens_cont_WA$dissolved_oxygen[i] <- NA
+#         }
+#   }else{ long_dens_cont_WA$dissolved_oxygen[i] <- NA}
+# }
+
+ggplot(isopycnals_WA, aes(distance_km, dissolved_oxygen, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="DO (umol/kg)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+#### Backscatter
+
+```{r interpolation backscatter, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_shallow, "backscatter", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_bscat_WA_shallow <- interp_grid_depth_WA_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(backscatter = est_var_by_dist(inter_WA_shallow, "backscatter", distance_km[1], depth)) %>%
+#   drop_na(backscatter)
+# 
+# check_WA <- interp_depth_bscat_WA_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_bscat_WA_shallow <- interp_grid_dist_WA_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(backscatter = estimate_var_by_depth(interp_depth_bscat_WA_shallow, "backscatter", depth[1], distance_km)) %>%
+#   drop_na(backscatter)
+# 
+# ggplot(raster_bscat_WA_shallow, aes(distance_km, depth, fill = backscatter)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Backscatter (/m)")
+
+```
+
+
+```{r interpolation backscatter WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_deep, "backscatter", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_bscat_WA_deep <- interp_grid_depth_WA_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(backscatter = est_var_by_dist(inter_WA_deep, "backscatter", distance_km[1], depth)) %>%
+#   drop_na(backscatter)
+# 
+# check_WA <- interp_depth_bscat_WA_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_bscat_WA_deep <- interp_grid_dist_WA_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(backscatter = estimate_var_by_depth(interp_depth_bscat_WA_deep, "backscatter", depth[1], distance_km)) %>%
+#   drop_na(backscatter)
+# 
+# ggplot(raster_bscat_WA_deep, aes(distance_km, depth, fill = backscatter)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Backscatter (/m)")
+
+```
+
+
+
+```{r combine the WA rasters backscatter, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# raster_bscat_WA <- rbind(raster_bscat_WA_shallow, raster_bscat_WA_deep) %>%
+#   group_by(distance_km, depth) %>%
+#   summarize(backscatter = mean(backscatter))
+# 
+# write.csv(raster_bscat_WA, file="Rasters/raster_bscat_WA.csv", row.names = FALSE)
+
+raster_bscat_WA <- read.csv("Rasters/raster_bscat_WA.csv")
+
+# ggplot(raster_bscat_WA, aes(distance_km, depth, col = backscatter)) +
+#   geom_point() +
+#   scale_y_reverse() + 
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "Backscatter (/m)") +
+#   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+
+ggplot(raster_bscat_WA %>% filter(depth <300), aes(distance_km, depth, col = backscatter)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Backscatter (/m)") +
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+```
+
+```{r isopycnal for backscatter, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_WA)){
+# 
+#     if(is.na(long_dens_cont_WA$smooth_depth[i]) == FALSE){
+#       
+#       xx <- raster_bscat_WA[(raster_bscat_WA$distance_km == 
+#                                                         long_dens_cont_WA$distance_km[i] & 
+#                                                       raster_bscat_WA$depth == 
+#                                                         round(long_dens_cont_WA$smooth_depth[i],1)),]
+#       
+#       if(nrow(xx) > 0){
+#         long_dens_cont_WA$backscatter[i] <- xx$backscatter
+#       } else {
+#           long_dens_cont_WA$backscatter[i] <- NA
+#         }
+#   }else{ long_dens_cont_WA$backscatter[i] <- NA}
+# }
+
+ggplot(isopycnals_WA, aes(distance_km, backscatter, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Backscatter (/m)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+
+#### CDOM
+
+```{r interpolation CDOM, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_shallow, "CDOM", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_CDOM_WA_shallow <- interp_grid_depth_WA_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(CDOM = est_var_by_dist(inter_WA_shallow, "CDOM", distance_km[1], depth)) %>%
+#   drop_na(CDOM)
+# 
+# check_WA <- interp_depth_CDOM_WA_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_CDOM_WA_shallow <- interp_grid_dist_WA_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(CDOM = estimate_var_by_depth(interp_depth_CDOM_WA_shallow, "CDOM", depth[1], distance_km)) %>%
+#   drop_na(CDOM)
+# 
+# ggplot(raster_CDOM_WA_shallow, aes(distance_km, depth, fill = CDOM)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "CDOM (ppb)")
+
+```
+
+
+```{r interpolation CDOM WA_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_WA_deep, "CDOM", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_CDOM_WA_deep <- interp_grid_depth_WA_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(CDOM = est_var_by_dist(inter_WA_deep, "CDOM", distance_km[1], depth)) %>%
+#   drop_na(CDOM)
+# 
+# check_WA <- interp_depth_CDOM_WA_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_CDOM_WA_deep <- interp_grid_dist_WA_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_WA$depth) %>%
+#   mutate(CDOM = estimate_var_by_depth(interp_depth_CDOM_WA_deep, "CDOM", depth[1], distance_km)) %>%
+#   drop_na(CDOM)
+# 
+# ggplot(raster_CDOM_WA_deep, aes(distance_km, depth, fill = CDOM)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "CDOM (ppb)")
+
+```
+
+
+
+```{r combine the WA rasters CDOM, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# raster_CDOM_WA <- rbind(raster_CDOM_WA_shallow, raster_CDOM_WA_deep) %>%
+#   group_by(distance_km, depth) %>%
+#   summarize(CDOM = mean(CDOM))
+# 
+# write.csv(raster_CDOM_WA, file="Rasters/raster_CDOM_WA.csv", row.names = FALSE)
+
+raster_CDOM_WA <- read.csv("Rasters/raster_CDOM_WA.csv")
+
+# ggplot(raster_CDOM_WA, aes(distance_km, depth, col = CDOM)) +
+#   geom_point() +
+#   scale_y_reverse() +
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "CDOM (ppb)") +
+#   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+ggplot(raster_CDOM_WA %>% filter(depth <300), aes(distance_km, depth, col = CDOM)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "CDOM (ppb)") +
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for CDOM, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_WA)){
+# 
+#     if(is.na(long_dens_cont_WA$smooth_depth[i]) == FALSE){
+#       
+#       xx <- raster_CDOM_WA[(raster_CDOM_WA$distance_km == 
+#                                                         long_dens_cont_WA$distance_km[i] & 
+#                                                       raster_CDOM_WA$depth == 
+#                                                         round(long_dens_cont_WA$smooth_depth[i],1)),]
+#       
+#       if(nrow(xx) > 0){
+#         long_dens_cont_WA$CDOM[i] <- xx$CDOM
+#       } else {
+#           long_dens_cont_WA$CDOM[i] <- NA
+#         }
+#   }else{ long_dens_cont_WA$CDOM[i] <- NA}
+# }
+
+ggplot(isopycnals_WA, aes(distance_km, CDOM, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="CDOM (ppb)") +
+  theme(legend.position = "none")
+
+```
+
+```{r isopycnal WA save, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# write.csv(long_dens_cont_WA, file = "Rasters/isopycnals_WA.csv")
+
+```
+
+
+### QC Interpolation
+
+```{r interpolation prep QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+inter_QC_shallow <- glider_VI %>% 
+  filter(ID == "CAN_QC_shallow" & depth != "NaN")  %>% 
+  mutate(distance_km_r = round(distance_km, 1)) %>% 
+  mutate(quantile = ntile(distance_km,25)) %>%
+  group_by(quantile) %>%
+  mutate(quantile_dist = mean(distance_km))
+
+# interp_grid_depth_QC_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_depth_QC_shallow) <- c("distance_km", "depth")
+# 
+# QC_shallow_maxdepths <- inter_QC_shallow %>%
+#   dplyr::select(quantile_dist, depth) %>%
+#   group_by(quantile_dist) %>%
+#   dplyr::summarise(max_depth = max(depth))
+# 
+# for(i in 1:length(unique(inter_QC_shallow$quantile_dist))){
+# 
+#   xx_max <- QC_shallow_maxdepths %>%
+#     filter(quantile_dist == unique(inter_QC_shallow$quantile_dist)[i])
+# 
+#   depths_above <- seq(0, round(xx_max$max_depth[1], 1), by =0.1)
+# 
+#   yy <- data.frame(rep(unique(inter_QC_shallow$quantile_dist)[i], times = length(depths_above)), depths_above)
+#   colnames(yy) <- c("distance_km", "depth")
+# 
+#   interp_grid_depth_QC_shallow <- rbind(interp_grid_depth_QC_shallow, yy)
+# 
+# }
+
+# ggplot(QC_shallow_maxdepths, aes(y=-max_depth, x=quantile_dist)) +
+#   geom_point() +
+#   geom_smooth()
+
+# max_QC_shallow_dist <- max(QC_shallow_maxdepths$quantile_dist)
+# min_QC_shallow_dist <- min(QC_shallow_maxdepths$quantile_dist)
+# seq_QC_shallow_dist <- seq(min_QC_shallow_dist, max_QC_shallow_dist, by = 0.1)
+# 
+# smooth_QC_shallow <- data.frame(distance_km = seq(min_QC_shallow_dist, max_QC_shallow_dist, by = 0.1),
+#                                 depth_smooth = predict(loess(max_depth~quantile_dist,QC_shallow_maxdepths), seq_QC_shallow_dist))
+# ggplot(QC_shallow_maxdepths, aes(y=-max_depth, x=quantile_dist)) +
+#   geom_point() +
+#   geom_smooth() +
+#   geom_smooth(smooth_QC_shallow, mapping = aes(x = distance_km, y = -depth_smooth), color = "pink", alpha = 0.3)
+
+# interp_grid_dist_QC_shallow <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_dist_QC_shallow) <- c("distance_km", "depth")
+# 
+# for(i in 1:length(unique(interp_grid_depth_QC_shallow$depth))){
+# 
+#   xx_smooth <- smooth_QC_shallow %>%
+#     filter(depth_smooth <= unique(interp_grid_depth_QC_shallow$depth)[i])
+# 
+#   if(nrow(xx_smooth) == 0){
+#     yy <- data.frame(seq_QC_shallow_dist, rep(unique(interp_grid_depth_QC_shallow$depth)[i], times = length(seq_QC_shallow_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+# 
+#     interp_grid_dist_QC_shallow <- rbind(interp_grid_dist_QC_shallow, yy)
+#   } else {
+#     xx_seq_dist <- seq_QC_shallow_dist[seq_QC_shallow_dist >= max(xx_smooth$distance_km)]
+# 
+#     yy <- data.frame(xx_seq_dist, rep(unique(interp_grid_depth_QC_shallow$depth)[i], times = length(xx_seq_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+# 
+#     interp_grid_dist_QC_shallow <- rbind(interp_grid_dist_QC_shallow, yy)
+#   }
+# }
+# 
+# write.csv(interp_grid_dist_QC_shallow, "Rasters/interp_grid_dist_QC_shallow.csv", row.names = FALSE)
+interp_grid_dist_QC_shallow <- read.csv("Rasters/interp_grid_dist_QC_shallow.csv")
+
+```
+
+#### Density
+
+```{r interpolation density QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_QC_shallow, "density", 66.7, c(6.3, 8, 9.3, 10))
+
+est_var_by_dist2 <- function(df, target_var, target_dist, target_depth) {
+  data_for_dist <- df %>%
+    filter(quantile_dist == target_dist) %>%
+    arrange(depth)
+  var <- target_var
+  approx(data_for_dist$depth, data_for_dist[[var]], xout = target_depth)$y
+}
+
+# interp_depth_dens_QC_shallow <- interp_grid_depth_QC_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(density = est_var_by_dist2(inter_QC_shallow, "density", distance_km[1], depth)) %>%
+#   drop_na(density)
+# 
+# check_QC <- interp_depth_dens_QC_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_dens_QC_shallow <- interp_grid_dist_QC_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_QC$depth) %>%
+#   mutate(density = estimate_var_by_depth(interp_depth_dens_QC_shallow, "density", depth[1], distance_km)) %>%
+#   drop_na(density)
+# 
+# raster_dens_QC_shallow$density <- raster_dens_QC_shallow$density - 1000
+# 
+# write.csv(raster_dens_QC_shallow, file="Rasters/raster_dens_QC_shallow.csv", row.names = FALSE)
+
+raster_dens_QC <- read.csv("Rasters/raster_dens_QC_shallow.csv")
+
+ggplot(raster_dens_QC, aes(distance_km, depth, col = density)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis() +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)")
+
+
+```
+```{r density contour QC, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=8}
+
+# dens_cont_QC <- as.data.frame(matrix(data=NA, ncol = 7, nrow = length(unique(raster_dens_QC$distance_km))))
+# colnames(dens_cont_QC) <- c("distance_km", "den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27")
+# dens_cont_QC$distance_km <- unique(raster_dens_QC$distance_km)
+# 
+# for(i in 1:nrow(dens_cont_QC)){
+# 
+#   xx <- raster_dens_QC[raster_dens_QC$distance_km == unique(raster_dens_QC$distance_km)[i],]
+# 
+#   xx_max_depth <- max(xx$depth)
+# 
+#   xx_den_26 <- xx[which.min(abs(xx$density - 26)),]$depth
+#   if(xx_den_26 != xx_max_depth){
+#     dens_cont_QC$den_26[i] <- xx_den_26
+#   } else {
+#     dens_cont_QC$den_26[i] <- NA
+#   }
+# 
+#    xx_den_26.2 <- xx[which.min(abs(xx$density - 26.2)),]$depth
+#   if(xx_den_26.2 != xx_max_depth){
+#     dens_cont_QC$den_26.2[i] <- xx_den_26.2
+#   } else {
+#     dens_cont_QC$den_26.2[i] <- NA
+#   }
+# 
+#    xx_den_26.4 <- xx[which.min(abs(xx$density - 26.4)),]$depth
+#   if(xx_den_26.4 != xx_max_depth){
+#     dens_cont_QC$den_26.4[i] <- xx_den_26.4
+#   } else {
+#     dens_cont_QC$den_26.4[i] <- NA
+#   }
+# 
+#    xx_den_26.6 <- xx[which.min(abs(xx$density - 26.6)),]$depth
+#   if(xx_den_26.6 != xx_max_depth){
+#     dens_cont_QC$den_26.6[i] <- xx_den_26.6
+#   } else {
+#     dens_cont_QC$den_26.6[i] <- NA
+#   }
+# 
+#    xx_den_26.8 <- xx[which.min(abs(xx$density - 26.8)),]$depth
+#   if(xx_den_26.8 != xx_max_depth){
+#     dens_cont_QC$den_26.8[i] <- xx_den_26.8
+#   } else {
+#     dens_cont_QC$den_26.8[i] <- NA
+#   }
+# 
+#    xx_den_27 <- xx[which.min(abs(xx$density - 27)),]$depth
+#   if(xx_den_27 != xx_max_depth){
+#     dens_cont_QC$den_27[i] <- xx_den_27
+#   } else {
+#     dens_cont_QC$den_27[i] <- NA
+#   }
+# }
+#
+#write.csv(dens_cont_QC, file="Rasters/dens_cont_QC.csv", row.names = FALSE)
+# 
+# dens_cont_QC <- read.csv("Rasters/dens_cont_QC.csv")
+# 
+# smooth_dens_QC <- data.frame(distance_km = dens_cont_QC$distance_km,
+#                             smooth_26 = predict(loess(den_26~distance_km,dens_cont_QC),
+#                                                    dens_cont_QC$distance_km))
+# 
+# smooth_dens_QC <- data.frame(smooth_dens_QC,
+#                             smooth_26.2 = predict(loess(den_26.2~distance_km,dens_cont_QC),
+#                                                    dens_cont_QC$distance_km))
+# 
+# smooth_dens_QC <- data.frame(smooth_dens_QC,
+#                             smooth_26.4 = predict(loess(den_26.4~distance_km,dens_cont_QC),
+#                                                    dens_cont_QC$distance_km))
+# 
+# smooth_dens_QC <- data.frame(smooth_dens_QC,
+#                             smooth_26.6 = predict(loess(den_26.6~distance_km,dens_cont_QC),
+#                                                    dens_cont_QC$distance_km))
+# 
+# smooth_dens_QC <- data.frame(smooth_dens_QC,
+#                             smooth_26.8 = predict(loess(den_26.8~distance_km,dens_cont_QC),
+#                                                    dens_cont_QC$distance_km))
+# 
+# smooth_dens_QC <- data.frame(smooth_dens_QC,
+#                             smooth_27 = predict(loess(den_27~distance_km,dens_cont_QC),
+#                                                    dens_cont_QC$distance_km))
+# 
+# long_smooth_dens_QC <- smooth_dens_QC %>%
+#   pivot_longer(
+#     cols = !distance_km,
+#     names_to = c("isopycnal"),
+#     values_to = "depth"
+#   )
+# 
+# long_dens_cont_QC <- dens_cont_QC %>%
+#   pivot_longer(
+#     cols = !distance_km,
+#     names_to = c("isopycnal"),
+#     values_to = "depth"
+#   )
+# 
+# long_dens_cont_QC$smooth_depth <- long_smooth_dens_QC$depth
+# 
+# write.csv(long_dens_cont_QC, file="Rasters/long_dens_cont_QC.csv", row.names = FALSE)
+
+long_dens_cont_QC <- read.csv("Rasters/long_dens_cont_QC.csv")
+
+# ggplot(raster_dens_QC, aes(distance_km, depth, col = density)) +
+#   geom_point() +
+#   scale_y_reverse() + 
+#   scale_color_binned(type = "viridis", n.breaks=20) +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
+#   geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+
+ggplot(raster_dens_QC %>% filter(depth <300), aes(distance_km, depth, col = density)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
+  geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+```
+
+
+#### Temperature
+
+```{r interpolation temperature QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_QC_shallow, "temperature", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_temp_QC_shallow <- interp_grid_depth_QC_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(temperature = est_var_by_dist2(inter_QC_shallow, "temperature", distance_km[1], depth)) %>%
+#   drop_na(temperature)
+# 
+# check_QC_shallow_temp <- interp_depth_temp_QC_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_temp_QC_shallow <- interp_grid_dist_QC_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_QC_shallow_temp$depth) %>%
+#   mutate(temperature = estimate_var_by_depth(interp_depth_temp_QC_shallow, "temperature", depth[1], distance_km)) %>%
+#   drop_na(temperature)
+# 
+# ggplot(raster_temp_QC_shallow, aes(distance_km, depth, fill = temperature)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Temperature (C)")
+# 
+# write.csv(raster_temp_QC_shallow, file="Rasters/raster_temp_QC.csv", row.names = FALSE)
+
+raster_temp_QC <- read.csv("Rasters/raster_temp_QC.csv")
+
+ggplot(raster_temp_QC %>% filter(depth <300), aes(distance_km, depth, col = temperature)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Temperature (C)") +
+  geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for temperature QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_QC)){
+# 
+#     if(is.na(long_dens_cont_QC$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_temp_QC[(raster_temp_QC$distance_km == long_dens_cont_QC$distance_km[i] &
+#                               raster_temp_QC$depth == round(long_dens_cont_QC$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_QC$temperature[i] <- xx$temperature
+#       } else {
+#           long_dens_cont_QC$temperature[i] <- NA
+#         }
+#   }else{ long_dens_cont_QC$temperature[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_QC, "Rasters/isopycnals_QC.csv", row.names = FALSE)
+
+isopycnals_QC <- read.csv(here::here("Rasters", "isopycnals_QC.csv"))
+
+isopycnals_QC$isopycnal <- as.factor(isopycnals_QC$isopycnal)
+
+ggplot(isopycnals_QC, aes(distance_km, temperature, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Temperature (C)") +
+  theme(legend.position = "none")
+
+```
+
+
+#### Salinity
+
+```{r interpolation salinity QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_QC_shallow, "salinity", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_sal_QC_shallow <- interp_grid_depth_QC_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(salinity = est_var_by_dist2(inter_QC_shallow, "salinity", distance_km[1], depth)) %>%
+#   drop_na(salinity)
+# 
+# check_QC_shallow_sal <- interp_depth_sal_QC_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_sal_QC_shallow <- interp_grid_dist_QC_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_QC_shallow_sal$depth) %>%
+#   mutate(salinity = estimate_var_by_depth(interp_depth_sal_QC_shallow, "salinity", depth[1], distance_km)) %>%
+#   drop_na(salinity)
+# 
+# ggplot(raster_sal_QC_shallow, aes(distance_km, depth, fill = salinity)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Salinity (ppt)")
+# 
+# write.csv(raster_sal_QC_shallow, file="Rasters/raster_sal_QC.csv", row.names = FALSE)
+
+raster_sal_QC <- read.csv("Rasters/raster_sal_QC.csv")
+
+ggplot(raster_sal_QC %>% filter(depth <300), aes(distance_km, depth, col = salinity)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Salinity (ppt)") +
+  geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for salinity QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_QC)){
+# 
+#     if(is.na(long_dens_cont_QC$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_sal_QC[(raster_sal_QC$distance_km == long_dens_cont_QC$distance_km[i] &
+#                               raster_sal_QC$depth == round(long_dens_cont_QC$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_QC$salinity[i] <- xx$salinity
+#       } else {
+#           long_dens_cont_QC$salinity[i] <- NA
+#         }
+#   }else{ long_dens_cont_QC$salinity[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_QC, "Rasters/isopycnals_QC.csv", row.names = FALSE)
+# 
+# isopycnals_QC <- read.csv(here::here("Rasters", "isopycnals_QC.csv"))
+
+isopycnals_QC$isopycnal <- as.factor(isopycnals_QC$isopycnal)
+
+ggplot(isopycnals_QC, aes(distance_km, salinity, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Salinity (ppt)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+
+
+#### Chlorophyll
+
+```{r interpolation chlorophyll QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_QC_shallow, "chlorophyll", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_chl_QC_shallow <- interp_grid_depth_QC_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(chlorophyll = est_var_by_dist2(inter_QC_shallow, "chlorophyll", distance_km[1], depth)) %>%
+#   drop_na(chlorophyll)
+# 
+# check_QC_shallow_chl <- interp_depth_chl_QC_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_chl_QC_shallow <- interp_grid_dist_QC_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_QC_shallow_chl$depth) %>%
+#   mutate(chlorophyll = estimate_var_by_depth(interp_depth_chl_QC_shallow, "chlorophyll", depth[1], distance_km)) %>%
+#   drop_na(chlorophyll)
+# 
+# ggplot(raster_chl_QC_shallow, aes(distance_km, depth, fill = chlorophyll)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Chlorophyll (ug/L)")
+# 
+# write.csv(raster_chl_QC_shallow, file="Rasters/raster_chl_QC.csv", row.names = FALSE)
+
+raster_chl_QC <- read.csv("Rasters/raster_chl_QC.csv")
+
+ggplot(raster_chl_QC %>% filter(depth <300), aes(distance_km, depth, col = chlorophyll)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Chlorophyll (ug/L)") +
+  geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for chlorophyll QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_QC)){
+# 
+#     if(is.na(long_dens_cont_QC$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_chl_QC[(raster_chl_QC$distance_km == long_dens_cont_QC$distance_km[i] &
+#                               raster_chl_QC$depth == round(long_dens_cont_QC$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_QC$chlorophyll[i] <- xx$chlorophyll
+#       } else {
+#           long_dens_cont_QC$chlorophyll[i] <- NA
+#         }
+#   }else{ long_dens_cont_QC$chlorophyll[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_QC, "Rasters/isopycnals_QC.csv", row.names = FALSE)
+# 
+# isopycnals_QC <- read.csv(here::here("Rasters", "isopycnals_QC.csv"))
+
+isopycnals_QC$isopycnal <- as.factor(isopycnals_QC$isopycnal)
+
+ggplot(isopycnals_QC, aes(distance_km, chlorophyll, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Chlorophyll (ug/L)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+#### Dissolved Oxygen
+
+```{r interpolation dissolved_oxygen QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_QC_shallow, "dissolved_oxygen", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_DO_QC_shallow <- interp_grid_depth_QC_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(dissolved_oxygen = est_var_by_dist2(inter_QC_shallow, "dissolved_oxygen", distance_km[1], depth)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# check_QC_shallow_DO <- interp_depth_DO_QC_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_DO_QC_shallow <- interp_grid_dist_QC_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_QC_shallow_DO$depth) %>%
+#   mutate(dissolved_oxygen = estimate_var_by_depth(interp_depth_DO_QC_shallow, "dissolved_oxygen", depth[1], distance_km)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# ggplot(raster_DO_QC_shallow, aes(distance_km, depth, fill = dissolved_oxygen)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "DO (umol/kg)")
+# 
+# write.csv(raster_DO_QC_shallow, file="Rasters/raster_DO_QC.csv", row.names = FALSE)
+
+raster_DO_QC <- read.csv("Rasters/raster_DO_QC.csv")
+
+ggplot(raster_DO_QC %>% filter(depth <300), aes(distance_km, depth, col = dissolved_oxygen)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "DO (umol/kg)") +
+  geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for dissolved_oxygen QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_QC)){
+# 
+#     if(is.na(long_dens_cont_QC$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_DO_QC[(raster_DO_QC$distance_km == long_dens_cont_QC$distance_km[i] &
+#                               raster_DO_QC$depth == round(long_dens_cont_QC$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_QC$dissolved_oxygen[i] <- xx$dissolved_oxygen
+#       } else {
+#           long_dens_cont_QC$dissolved_oxygen[i] <- NA
+#         }
+#   }else{ long_dens_cont_QC$dissolved_oxygen[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_QC, "Rasters/isopycnals_QC.csv", row.names = FALSE)
+# 
+# isopycnals_QC <- read.csv(here::here("Rasters", "isopycnals_QC.csv"))
+
+isopycnals_QC$isopycnal <- as.factor(isopycnals_QC$isopycnal)
+
+ggplot(isopycnals_QC, aes(distance_km, dissolved_oxygen, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="DO (umol/kg)") +
+  theme(legend.position = "none")
+
+```
+
+#### Backscatter
+
+```{r interpolation backscatter QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_QC_shallow, "backscatter", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_bscat_QC_shallow <- interp_grid_depth_QC_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(backscatter = est_var_by_dist2(inter_QC_shallow, "backscatter", distance_km[1], depth)) %>%
+#   drop_na(backscatter)
+# 
+# check_QC_shallow_bscat <- interp_depth_bscat_QC_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_bscat_QC_shallow <- interp_grid_dist_QC_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_QC_shallow_bscat$depth) %>%
+#   mutate(backscatter = estimate_var_by_depth(interp_depth_bscat_QC_shallow, "backscatter", depth[1], distance_km)) %>%
+#   drop_na(backscatter)
+# 
+# ggplot(raster_bscat_QC_shallow, aes(distance_km, depth, fill = backscatter)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Backscatter (/m)")
+# 
+# write.csv(raster_bscat_QC_shallow, file="Rasters/raster_bscat_QC.csv", row.names = FALSE)
+
+raster_bscat_QC <- read.csv("Rasters/raster_bscat_QC.csv")
+
+ggplot(raster_bscat_QC %>% filter(depth <300), aes(distance_km, depth, col = backscatter)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Backscatter (/m)") +
+  geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for backscatter QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_QC)){
+# 
+#     if(is.na(long_dens_cont_QC$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_bscat_QC[(raster_bscat_QC$distance_km == long_dens_cont_QC$distance_km[i] &
+#                               raster_bscat_QC$depth == round(long_dens_cont_QC$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_QC$backscatter[i] <- xx$backscatter
+#       } else {
+#           long_dens_cont_QC$backscatter[i] <- NA
+#         }
+#   }else{ long_dens_cont_QC$backscatter[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_QC, "Rasters/isopycnals_QC.csv", row.names = FALSE)
+# 
+# isopycnals_QC <- read.csv(here::here("Rasters", "isopycnals_QC.csv"))
+
+isopycnals_QC$isopycnal <- as.factor(isopycnals_QC$isopycnal)
+
+ggplot(isopycnals_QC, aes(distance_km, backscatter, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Backscatter (/m)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+#### CDOM
+
+```{r interpolation CDOM QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_QC_shallow, "CDOM", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_CDOM_QC_shallow <- interp_grid_depth_QC_shallow %>%
+#   group_by(distance_km) %>%
+#   mutate(CDOM = est_var_by_dist2(inter_QC_shallow, "CDOM", distance_km[1], depth)) %>%
+#   drop_na(CDOM)
+# 
+# check_QC_shallow_CDOM <- interp_depth_CDOM_QC_shallow %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_CDOM_QC_shallow <- interp_grid_dist_QC_shallow %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_QC_shallow_CDOM$depth) %>%
+#   mutate(CDOM = estimate_var_by_depth(interp_depth_CDOM_QC_shallow, "CDOM", depth[1], distance_km)) %>%
+#   drop_na(CDOM)
+# 
+# ggplot(raster_CDOM_QC_shallow, aes(distance_km, depth, fill = CDOM)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "CDOM (ppb)")
+# 
+# write.csv(raster_CDOM_QC_shallow, file="Rasters/raster_CDOM_QC.csv", row.names = FALSE)
+
+raster_CDOM_QC <- read.csv("Rasters/raster_CDOM_QC.csv")
+
+ggplot(raster_CDOM_QC %>% filter(depth <300), aes(distance_km, depth, col = CDOM)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "CDOM (ppb)") +
+  geom_line(long_dens_cont_QC, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for CDOM QC_shallow, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_QC)){
+# 
+#     if(is.na(long_dens_cont_QC$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_CDOM_QC[(raster_CDOM_QC$distance_km == long_dens_cont_QC$distance_km[i] &
+#                               raster_CDOM_QC$depth == round(long_dens_cont_QC$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_QC$CDOM[i] <- xx$CDOM
+#       } else {
+#           long_dens_cont_QC$CDOM[i] <- NA
+#         }
+#   }else{ long_dens_cont_QC$CDOM[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_QC, "Rasters/isopycnals_QC.csv", row.names = FALSE)
+# 
+# isopycnals_QC <- read.csv(here::here("Rasters", "isopycnals_QC.csv"))
+
+isopycnals_QC$isopycnal <- as.factor(isopycnals_QC$isopycnal)
+
+ggplot(isopycnals_QC, aes(distance_km, CDOM, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="CDOM (ppb)") +
+  theme(legend.position = "none")
+
+```
+
+
+### VI Interpolation
+
+```{r interpolation prep VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+inter_VI_deep <- glider_VI %>% 
+  filter(ID == "CAN_VI_deep" & depth != "NaN")  %>% 
+  mutate(distance_km_r = round(distance_km, 1)) %>% 
+  mutate(quantile = ntile(distance_km,15)) %>%
+  group_by(quantile) %>%
+  mutate(quantile_dist = mean(distance_km))
+
+# interp_grid_depth_VI_deep <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_depth_VI_deep) <- c("distance_km", "depth")
+# 
+# VI_deep_maxdepths <- inter_VI_deep %>%
+#   dplyr::select(quantile_dist, depth) %>%
+#   group_by(quantile_dist) %>%
+#   dplyr::summarise(max_depth = max(depth))
+# 
+# for(i in 1:length(unique(inter_VI_deep$quantile_dist))){
+# 
+#   xx_max <- VI_deep_maxdepths %>%
+#     filter(quantile_dist == unique(inter_VI_deep$quantile_dist)[i])
+# 
+#   depths_above <- seq(0, round(xx_max$max_depth[1], 1), by =0.1)
+# 
+#   yy <- data.frame(rep(unique(inter_VI_deep$quantile_dist)[i], times = length(depths_above)), depths_above)
+#   colnames(yy) <- c("distance_km", "depth")
+# 
+#   interp_grid_depth_VI_deep <- rbind(interp_grid_depth_VI_deep, yy)
+# 
+# }
+# 
+# ggplot(VI_deep_maxdepths, aes(y=-max_depth, x=quantile_dist)) +
+#   geom_point() +
+#   geom_smooth()
+# 
+# max_VI_deep_dist <- max(VI_deep_maxdepths$quantile_dist)
+# min_VI_deep_dist <- min(VI_deep_maxdepths$quantile_dist)
+# seq_VI_deep_dist <- seq(min_VI_deep_dist, max_VI_deep_dist, by = 0.1)
+# 
+# smooth_VI_deep <- data.frame(distance_km = seq(min_VI_deep_dist, max_VI_deep_dist, by = 0.1),
+#                                 depth_smooth = predict(loess(max_depth~quantile_dist,VI_deep_maxdepths), seq_VI_deep_dist))
+# ggplot(VI_deep_maxdepths, aes(y=-max_depth, x=quantile_dist)) +
+#   geom_point() +
+#   geom_smooth() +
+#   geom_smooth(smooth_VI_deep, mapping = aes(x = distance_km, y = -depth_smooth), color = "pink", alpha = 0.3)
+# 
+# interp_grid_dist_VI_deep <- as.data.frame(matrix(data=NA, ncol=2, nrow=0))
+# colnames(interp_grid_dist_VI_deep) <- c("distance_km", "depth")
+# 
+# for(i in 1:length(unique(interp_grid_depth_VI_deep$depth))){
+# 
+#   xx_smooth <- smooth_VI_deep %>%
+#     filter(depth_smooth <= unique(interp_grid_depth_VI_deep$depth)[i])
+# 
+#   if(nrow(xx_smooth) == 0){
+#     yy <- data.frame(seq_VI_deep_dist, rep(unique(interp_grid_depth_VI_deep$depth)[i], times = length(seq_VI_deep_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+# 
+#     interp_grid_dist_VI_deep <- rbind(interp_grid_dist_VI_deep, yy)
+#   } else {
+#     xx_seq_dist <- seq_VI_deep_dist[seq_VI_deep_dist >= max(xx_smooth$distance_km)]
+# 
+#     yy <- data.frame(xx_seq_dist, rep(unique(interp_grid_depth_VI_deep$depth)[i], times = length(xx_seq_dist)))
+#     colnames(yy) <- c("distance_km", "depth")
+# 
+#     interp_grid_dist_VI_deep <- rbind(interp_grid_dist_VI_deep, yy)
+#   }
+# }
+# 
+# write.csv(interp_grid_dist_VI_deep, "Rasters/interp_grid_dist_VI_deep.csv", row.names = FALSE)
+interp_grid_dist_VI_deep <- read.csv("Rasters/interp_grid_dist_VI_deep.csv")
+
+```
+
+#### Density
+
+```{r interpolation density VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_VI_deep, "density", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_dens_VI_deep <- interp_grid_depth_VI_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(density = est_var_by_dist2(inter_VI_deep, "density", distance_km[1], depth)) %>%
+#   drop_na(density)
+# 
+# check_VI <- interp_depth_dens_VI_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_dens_VI_deep <- interp_grid_dist_VI_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_VI$depth) %>%
+#   mutate(density = estimate_var_by_depth(interp_depth_dens_VI_deep, "density", depth[1], distance_km)) %>%
+#   drop_na(density)
+# 
+# raster_dens_VI_deep$density <- raster_dens_VI_deep$density - 1000
+# 
+# write.csv(raster_dens_VI_deep, file="Rasters/raster_dens_VI_deep.csv", row.names = FALSE)
+
+raster_dens_VI <- read.csv("Rasters/raster_dens_VI_deep.csv")
+
+ggplot(raster_dens_VI, aes(distance_km, depth, col = density)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis() +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)")
+
+
+```
+
+
+```{r density contour VI, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=8}
+# 
+# dens_cont_VI <- as.data.frame(matrix(data=NA, ncol = 7, nrow = length(unique(raster_dens_VI$distance_km))))
+# colnames(dens_cont_VI) <- c("distance_km", "den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27")
+# dens_cont_VI$distance_km <- unique(raster_dens_VI$distance_km)
+# 
+# for(i in 1:nrow(dens_cont_VI)){
+# 
+#   xx <- raster_dens_VI[raster_dens_VI$distance_km == unique(raster_dens_VI$distance_km)[i],]
+# 
+#   xx_max_depth <- max(xx$depth)
+# 
+#   xx_den_26 <- xx[which.min(abs(xx$density - 26)),]$depth
+#   if(xx_den_26 != xx_max_depth){
+#     dens_cont_VI$den_26[i] <- xx_den_26
+#   } else {
+#     dens_cont_VI$den_26[i] <- NA
+#   }
+# 
+#    xx_den_26.2 <- xx[which.min(abs(xx$density - 26.2)),]$depth
+#   if(xx_den_26.2 != xx_max_depth){
+#     dens_cont_VI$den_26.2[i] <- xx_den_26.2
+#   } else {
+#     dens_cont_VI$den_26.2[i] <- NA
+#   }
+# 
+#    xx_den_26.4 <- xx[which.min(abs(xx$density - 26.4)),]$depth
+#   if(xx_den_26.4 != xx_max_depth){
+#     dens_cont_VI$den_26.4[i] <- xx_den_26.4
+#   } else {
+#     dens_cont_VI$den_26.4[i] <- NA
+#   }
+# 
+#    xx_den_26.6 <- xx[which.min(abs(xx$density - 26.6)),]$depth
+#   if(xx_den_26.6 != xx_max_depth){
+#     dens_cont_VI$den_26.6[i] <- xx_den_26.6
+#   } else {
+#     dens_cont_VI$den_26.6[i] <- NA
+#   }
+# 
+#    xx_den_26.8 <- xx[which.min(abs(xx$density - 26.8)),]$depth
+#   if(xx_den_26.8 != xx_max_depth){
+#     dens_cont_VI$den_26.8[i] <- xx_den_26.8
+#   } else {
+#     dens_cont_VI$den_26.8[i] <- NA
+#   }
+# 
+#    xx_den_27 <- xx[which.min(abs(xx$density - 27)),]$depth
+#   if(xx_den_27 != xx_max_depth){
+#     dens_cont_VI$den_27[i] <- xx_den_27
+#   } else {
+#     dens_cont_VI$den_27[i] <- NA
+#   }
+# }
+# 
+# write.csv(dens_cont_VI, file="Rasters/dens_cont_VI.csv", row.names = FALSE)
+# 
+# dens_cont_VI <- read.csv("Rasters/dens_cont_VI.csv")
+# 
+# smooth_dens_VI <- data.frame(distance_km = dens_cont_VI$distance_km,
+#                             smooth_26 = predict(loess(den_26~distance_km,dens_cont_VI),
+#                                                    dens_cont_VI$distance_km))
+# 
+# smooth_dens_VI <- data.frame(smooth_dens_VI,
+#                             smooth_26.2 = predict(loess(den_26.2~distance_km,dens_cont_VI),
+#                                                    dens_cont_VI$distance_km))
+# 
+# smooth_dens_VI <- data.frame(smooth_dens_VI,
+#                             smooth_26.4 = predict(loess(den_26.4~distance_km,dens_cont_VI),
+#                                                    dens_cont_VI$distance_km))
+# 
+# smooth_dens_VI <- data.frame(smooth_dens_VI,
+#                             smooth_26.6 = predict(loess(den_26.6~distance_km,dens_cont_VI),
+#                                                    dens_cont_VI$distance_km))
+# 
+# smooth_dens_VI <- data.frame(smooth_dens_VI,
+#                             smooth_26.8 = predict(loess(den_26.8~distance_km,dens_cont_VI),
+#                                                    dens_cont_VI$distance_km))
+# 
+# smooth_dens_VI <- data.frame(smooth_dens_VI,
+#                             smooth_27 = predict(loess(den_27~distance_km,dens_cont_VI),
+#                                                    dens_cont_VI$distance_km))
+# 
+# long_smooth_dens_VI <- smooth_dens_VI %>%
+#   pivot_longer(
+#     cols = !distance_km,
+#     names_to = c("isopycnal"),
+#     values_to = "depth"
+#   )
+# 
+# long_dens_cont_VI <- dens_cont_VI %>%
+#   pivot_longer(
+#     cols = !distance_km,
+#     names_to = c("isopycnal"),
+#     values_to = "depth"
+#   )
+# 
+# long_dens_cont_VI$smooth_depth <- long_smooth_dens_VI$depth
+# 
+# write.csv(long_dens_cont_VI, file="Rasters/long_dens_cont_VI.csv", row.names = FALSE)
+
+long_dens_cont_VI <- read.csv("Rasters/long_dens_cont_VI.csv")
+
+ggplot(raster_dens_VI, aes(distance_km, depth, col = density)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=20) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+
+ggplot(raster_dens_VI %>% filter(depth <300), aes(distance_km, depth, col = density)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+
+```
+
+
+#### Temperature
+
+```{r interpolation temperature VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_VI_deep, "temperature", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_temp_VI_deep <- interp_grid_depth_VI_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(temperature = est_var_by_dist2(inter_VI_deep, "temperature", distance_km[1], depth)) %>%
+#   drop_na(temperature)
+# 
+# check_VI_deep_temp <- interp_depth_temp_VI_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_temp_VI_deep <- interp_grid_dist_VI_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_VI_deep_temp$depth) %>%
+#   mutate(temperature = estimate_var_by_depth(interp_depth_temp_VI_deep, "temperature", depth[1], distance_km)) %>%
+#   drop_na(temperature)
+# 
+# ggplot(raster_temp_VI_deep, aes(distance_km, depth, fill = temperature)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Temperature (C)")
+# 
+# write.csv(raster_temp_VI_deep, file="Rasters/raster_temp_VI.csv", row.names = FALSE)
+
+raster_temp_VI <- read.csv("Rasters/raster_temp_VI.csv")
+
+ggplot(raster_temp_VI %>% filter(depth <300), aes(distance_km, depth, col = temperature)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Temperature (C)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for temperature VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_VI)){
+# 
+#     if(is.na(long_dens_cont_VI$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_temp_VI[(raster_temp_VI$distance_km == long_dens_cont_VI$distance_km[i] &
+#                               raster_temp_VI$depth == round(long_dens_cont_VI$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_VI$temperature[i] <- xx$temperature
+#       } else {
+#           long_dens_cont_VI$temperature[i] <- NA
+#         }
+#   }else{ long_dens_cont_VI$temperature[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_VI, "Rasters/isopycnals_VI.csv", row.names = FALSE)
+
+isopycnals_VI <- read.csv(here::here("Rasters", "isopycnals_VI.csv"))
+
+isopycnals_VI$isopycnal <- as.factor(isopycnals_VI$isopycnal)
+
+ggplot(isopycnals_VI, aes(distance_km, temperature, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Temperature (C)") +
+  theme(legend.position = "none")
+
+```
+
+
+#### Salinity
+
+```{r interpolation salinity VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_VI_deep, "salinity", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_sal_VI_deep <- interp_grid_depth_VI_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(salinity = est_var_by_dist2(inter_VI_deep, "salinity", distance_km[1], depth)) %>%
+#   drop_na(salinity)
+# 
+# check_VI_deep_sal <- interp_depth_sal_VI_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_sal_VI_deep <- interp_grid_dist_VI_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_VI_deep_sal$depth) %>%
+#   mutate(salinity = estimate_var_by_depth(interp_depth_sal_VI_deep, "salinity", depth[1], distance_km)) %>%
+#   drop_na(salinity)
+# 
+# ggplot(raster_sal_VI_deep, aes(distance_km, depth, fill = salinity)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Salinity (ppt)")
+# 
+# write.csv(raster_sal_VI_deep, file="Rasters/raster_sal_VI.csv", row.names = FALSE)
+
+raster_sal_VI <- read.csv("Rasters/raster_sal_VI.csv")
+
+ggplot(raster_sal_VI %>% filter(depth <300), aes(distance_km, depth, col = salinity)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Salinity (ppt)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for salinity VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_VI)){
+# 
+#     if(is.na(long_dens_cont_VI$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_sal_VI[(raster_sal_VI$distance_km == long_dens_cont_VI$distance_km[i] &
+#                               raster_sal_VI$depth == round(long_dens_cont_VI$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_VI$salinity[i] <- xx$salinity
+#       } else {
+#           long_dens_cont_VI$salinity[i] <- NA
+#         }
+#   }else{ long_dens_cont_VI$salinity[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_VI, "Rasters/isopycnals_VI.csv", row.names = FALSE)
+# 
+# isopycnals_VI <- read.csv(here::here("Rasters", "isopycnals_VI.csv"))
+# 
+# isopycnals_VI$isopycnal <- as.factor(isopycnals_VI$isopycnal)
+
+ggplot(isopycnals_VI, aes(distance_km, salinity, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Salinity (ppt)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+
+
+#### Chlorophyll
+
+```{r interpolation chlorophyll VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_VI_deep, "chlorophyll", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_chl_VI_deep <- interp_grid_depth_VI_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(chlorophyll = est_var_by_dist2(inter_VI_deep, "chlorophyll", distance_km[1], depth)) %>%
+#   drop_na(chlorophyll)
+# 
+# check_VI_deep_chl <- interp_depth_chl_VI_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_chl_VI_deep <- interp_grid_dist_VI_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_VI_deep_chl$depth) %>%
+#   mutate(chlorophyll = estimate_var_by_depth(interp_depth_chl_VI_deep, "chlorophyll", depth[1], distance_km)) %>%
+#   drop_na(chlorophyll)
+# 
+# ggplot(raster_chl_VI_deep, aes(distance_km, depth, fill = chlorophyll)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Chlorophyll (ug/L)")
+# 
+# write.csv(raster_chl_VI_deep, file="Rasters/raster_chl_VI.csv", row.names = FALSE)
+
+raster_chl_VI <- read.csv("Rasters/raster_chl_VI.csv")
+
+ggplot(raster_chl_VI %>% filter(depth <300), aes(distance_km, depth, col = chlorophyll)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Chlorophyll (ug/L)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for chlorophyll VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_VI)){
+# 
+#     if(is.na(long_dens_cont_VI$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_chl_VI[(raster_chl_VI$distance_km == long_dens_cont_VI$distance_km[i] &
+#                               raster_chl_VI$depth == round(long_dens_cont_VI$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_VI$chlorophyll[i] <- xx$chlorophyll
+#       } else {
+#           long_dens_cont_VI$chlorophyll[i] <- NA
+#         }
+#   }else{ long_dens_cont_VI$chlorophyll[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_VI, "Rasters/isopycnals_VI.csv", row.names = FALSE)
+# 
+# isopycnals_VI <- read.csv(here::here("Rasters", "isopycnals_VI.csv"))
+# 
+# isopycnals_VI$isopycnal <- as.factor(isopycnals_VI$isopycnal)
+
+ggplot(isopycnals_VI, aes(distance_km, chlorophyll, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Chlorophyll (ug/L)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+#### Dissolved Oxygen
+
+```{r interpolation dissolved_oxygen VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_VI_deep, "dissolved_oxygen", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_DO_VI_deep <- interp_grid_depth_VI_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(dissolved_oxygen = est_var_by_dist2(inter_VI_deep, "dissolved_oxygen", distance_km[1], depth)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# check_VI_deep_DO <- interp_depth_DO_VI_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_DO_VI_deep <- interp_grid_dist_VI_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_VI_deep_DO$depth) %>%
+#   mutate(dissolved_oxygen = estimate_var_by_depth(interp_depth_DO_VI_deep, "dissolved_oxygen", depth[1], distance_km)) %>%
+#   drop_na(dissolved_oxygen)
+# 
+# ggplot(raster_DO_VI_deep, aes(distance_km, depth, fill = dissolved_oxygen)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "DO (umol/kg)")
+# 
+# write.csv(raster_DO_VI_deep, file="Rasters/raster_DO_VI.csv", row.names = FALSE)
+
+raster_DO_VI <- read.csv("Rasters/raster_DO_VI.csv")
+
+ggplot(raster_DO_VI %>% filter(depth <300), aes(distance_km, depth, col = dissolved_oxygen)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "DO (umol/kg)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for dissolved_oxygen VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_VI)){
+# 
+#     if(is.na(long_dens_cont_VI$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_DO_VI[(raster_DO_VI$distance_km == long_dens_cont_VI$distance_km[i] &
+#                               raster_DO_VI$depth == round(long_dens_cont_VI$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_VI$dissolved_oxygen[i] <- xx$dissolved_oxygen
+#       } else {
+#           long_dens_cont_VI$dissolved_oxygen[i] <- NA
+#         }
+#   }else{ long_dens_cont_VI$dissolved_oxygen[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_VI, "Rasters/isopycnals_VI.csv", row.names = FALSE)
+# 
+# isopycnals_VI <- read.csv(here::here("Rasters", "isopycnals_VI.csv"))
+# 
+# isopycnals_VI$isopycnal <- as.factor(isopycnals_VI$isopycnal)
+
+ggplot(isopycnals_VI, aes(distance_km, dissolved_oxygen, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="DO (umol/kg)") +
+  theme(legend.position = "none")
+
+```
+
+#### Backscatter
+
+```{r interpolation backscatter VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_VI_deep, "backscatter", 66.7, c(6.3, 8, 9.3, 10))
+
+# interp_depth_bscat_VI_deep <- interp_grid_depth_VI_deep %>%
+#   group_by(distance_km) %>%
+#   mutate(backscatter = est_var_by_dist2(inter_VI_deep, "backscatter", distance_km[1], depth)) %>%
+#   drop_na(backscatter)
+# 
+# check_VI_deep_bscat <- interp_depth_bscat_VI_deep %>%
+#   group_by(depth) %>%
+#   summarize(reps = length(depth)) %>%
+#   filter(reps >= 2)
+# 
+# raster_bscat_VI_deep <- interp_grid_dist_VI_deep %>%
+#   group_by(depth) %>%
+#   dplyr::filter(depth %in% check_VI_deep_bscat$depth) %>%
+#   mutate(backscatter = estimate_var_by_depth(interp_depth_bscat_VI_deep, "backscatter", depth[1], distance_km)) %>%
+#   drop_na(backscatter)
+# 
+# ggplot(raster_bscat_VI_deep, aes(distance_km, depth, fill = backscatter)) +
+#   geom_raster() +
+#   scale_y_reverse() +
+#   scale_fill_viridis() +
+#   theme_DOM() +
+#   labs(y="Depth (m)", x = "Distance (km)", fill = "Backscatter (/m)")
+# 
+# write.csv(raster_bscat_VI_deep, file="Rasters/raster_bscat_VI.csv", row.names = FALSE)
+
+raster_bscat_VI <- read.csv("Rasters/raster_bscat_VI.csv")
+
+ggplot(raster_bscat_VI %>% filter(depth <300), aes(distance_km, depth, col = backscatter)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Backscatter (/m)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for backscatter VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_VI)){
+# 
+#     if(is.na(long_dens_cont_VI$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_bscat_VI[(raster_bscat_VI$distance_km == long_dens_cont_VI$distance_km[i] &
+#                               raster_bscat_VI$depth == round(long_dens_cont_VI$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_VI$backscatter[i] <- xx$backscatter
+#       } else {
+#           long_dens_cont_VI$backscatter[i] <- NA
+#         }
+#   }else{ long_dens_cont_VI$backscatter[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_VI, "Rasters/isopycnals_VI.csv", row.names = FALSE)
+# 
+# isopycnals_VI <- read.csv(here::here("Rasters", "isopycnals_VI.csv"))
+# 
+# isopycnals_VI$isopycnal <- as.factor(isopycnals_VI$isopycnal)
+
+ggplot(isopycnals_VI, aes(distance_km, backscatter, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="Backscatter (/m)") +
+  theme(legend.position = "none")
+
+```
+
+
+
+#### CDOM
+
+```{r interpolation CDOM VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# est_var_by_dist(inter_VI_deep, "CDOM", 66.7, c(6.3, 8, 9.3, 10))
+
+  
+
+raster_CDOM_VI <- read.csv("Rasters/raster_CDOM_VI.csv")
+
+ggplot(raster_CDOM_VI %>% filter(depth <300), aes(distance_km, depth, col = CDOM)) +
+  geom_point() +
+  scale_y_reverse() + 
+  scale_color_binned(type = "viridis", n.breaks=10) +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "CDOM (ppb)") +
+  geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
+```
+
+```{r isopycnal for CDOM VI_deep, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+# for(i in 1:nrow(long_dens_cont_VI)){
+# 
+#     if(is.na(long_dens_cont_VI$smooth_depth[i]) == FALSE){
+# 
+#       xx <- raster_CDOM_VI[(raster_CDOM_VI$distance_km == long_dens_cont_VI$distance_km[i] &
+#                               raster_CDOM_VI$depth == round(long_dens_cont_VI$depth[i],1)),]
+# 
+#       if(nrow(xx) > 0){
+#         long_dens_cont_VI$CDOM[i] <- xx$CDOM
+#       } else {
+#           long_dens_cont_VI$CDOM[i] <- NA
+#         }
+#   }else{ long_dens_cont_VI$CDOM[i] <- NA}
+# }
+# 
+# write.csv(long_dens_cont_VI, "Rasters/isopycnals_VI.csv", row.names = FALSE)
+# 
+# isopycnals_VI <- read.csv(here::here("Rasters", "isopycnals_VI.csv"))
+# 
+# isopycnals_VI$isopycnal <- as.factor(isopycnals_VI$isopycnal)
+
+ggplot(isopycnals_VI, aes(distance_km, CDOM, col = isopycnal)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_color_viridis(discrete = TRUE) +
+  theme_DOM() +
+  facet_wrap(vars(isopycnal), ncol = 2) +
+  labs(x="Distance (km)", y="CDOM (ppb)") +
+  theme(legend.position = "none")
+
+```
