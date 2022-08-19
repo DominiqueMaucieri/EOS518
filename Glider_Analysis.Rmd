@@ -438,7 +438,8 @@ simple_map_VI <- ggplot(data = world) +
     size = 2
   ) +
   labs(x = "Longitude", y = "Latitude")+
-  scale_color_manual(values = c("chocolate1", "orangered3")) 
+  scale_color_manual(values = c("chocolate1", "orangered3"))+ 
+  theme(axis.text.x = element_text(angle = 45, hjust=1))
 simple_map_VI
 
 ```
@@ -572,14 +573,17 @@ ggplot(comb_glider %>% drop_na(dissolved_oxygen), aes(y=-depth, x= distance_km))
 
 ```
 
-```{r profile distance from shore wiht density, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.height=8, fig.width=6}
+```{r profile distance from shore wiht density, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+comb_glider$ID <- factor(comb_glider$ID, levels = c("CAN_VI_deep", "CAN_QC_shallow", "USA_WA_deep",  "USA_WA_shallow"))
 
 ggplot(comb_glider %>% drop_na(density), aes(y=-depth, x= distance_km)) +
-  geom_point(aes(col = density)) + 
+  geom_point(aes(col = (density -1000))) + 
   theme_DOM() +
   scale_color_viridis() +
-  facet_wrap(vars(ID), scales = "free_x", ncol=2) + 
-  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Density (kg/m3)")
+  facet_wrap(vars(ID), nrow=1) + 
+  labs(x ="Distance from shore (km)", y="Depth (m)", color = "Density (kg/m3)")+
+  scale_x_reverse() 
 
 ```
 
@@ -717,7 +721,7 @@ tempvDO_plot <- ggplot(comb_glider, aes(y=dissolved_oxygen, x=temperature, col =
   geom_smooth(se=FALSE, col = "darkgreen", method = "gam")+
   theme_DOM() + 
   labs(y ="Dissolved Oxygen (umol/kg)", x="Temperature(C)", color = "ID") +
-  scale_color_manual(values = c("chocolate1", "orangered3", "skyblue2", "blue2")) +
+  scale_color_manual(values = c("chocolate1", "orangered3", "mediumpurple1", "blue2")) +
   scale_y_continuous(name = "Dissolved Oxygen (umol/kg)",
     sec.axis = sec_axis( trans=~./43.57, name="Dissolved Oxygen (ml/L)")) +  
   facet_wrap(vars(ID)) +
@@ -735,7 +739,7 @@ TS_plot <- ggplot(comb_glider, aes(y=temperature, x=salinity, col = ID)) +
   geom_smooth(se = FALSE) +
   theme_DOM() + 
   labs(y ="Temperature", x="Salinity (ppt)", color = "ID") +
-  scale_color_manual(values = c("chocolate1", "orangered3", "skyblue2", "blue2")) 
+  scale_color_manual(values = c("chocolate1", "orangered3", "mediumpurple1", "blue2")) 
 
 ```
 
@@ -797,11 +801,53 @@ ggplot(contours_df, aes(x = sal, y = temp_num)) +
   geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
   geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
   theme_DOM() +
-  labs(y ="Temperature", x="Salinity (ppt)", color = "ID") +
+  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "ID") +
   metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
   metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0)+
   geom_smooth(comb_glider, mapping = aes(y=temperature, x=salinity, col = ID), se = FALSE) +
-  scale_color_manual(values = c("chocolate1", "orangered3", "skyblue2", "blue2")) +
+  scale_color_manual(values = c("chocolate1", "orangered3", "mediumpurple1", "blue2")) +
+  xlim(31, 34.5) + 
+  ylim(3,17)
+
+```
+
+
+```{r deep contours, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+
+comb_glider_deep <- comb_glider %>%
+  filter(ID == "CAN_VI_deep" | ID == "USA_WA_deep")
+  
+ggplot(contours_df, aes(x = sal, y = temp_num)) +
+  geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
+  geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
+  theme_DOM() +
+  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "ID") +
+  metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
+  metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0) +
+  geom_point(comb_glider_deep, mapping = aes(y=temperature, x=salinity, col = ID), alpha = 0.3) +
+  scale_color_manual(values = c("orangered3", "blue2")) +
+  xlim(31, 34.5) + 
+  ylim(3,17)
+
+```
+
+
+```{r deep contours, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
+
+
+comb_glider_shallow <- comb_glider %>%
+  filter(ID == "CAN_QC_shallow" | ID == "USA_WA_shallow")
+  
+ggplot(contours_df, aes(x = sal, y = temp_num)) +
+  geom_contour(aes(z = dens), col="grey", binwidth = 0.2) +
+  geom_contour(aes(z = spice), col="seagreen3", binwidth = 0.5) +
+  theme_DOM() +
+  labs(y ="Temperature (C)", x="Salinity (ppt)", color = "ID") +
+  metR::geom_text_contour(aes(z = dens), stroke = 0.15, skip=0)+
+  metR::geom_text_contour(aes(z = spice), stroke = 0.15, skip=0) +
+  geom_point(comb_glider_shallow, mapping = aes(y=temperature, x=salinity, col = ID), alpha = 0.3) +
+  scale_color_manual(values = c("chocolate1", "mediumpurple1")) +
   xlim(31, 34.5) + 
   ylim(3,17)
 
@@ -1473,7 +1519,7 @@ raster_dens_WA <- read.csv("Rasters/raster_dens_WA.csv")
 ```
 
 
-```{r density contour WA, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=8}
+```{r density contour WA, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
 # dens_cont_WA <- as.data.frame(matrix(data=NA, ncol = 7, nrow = length(unique(raster_dens_WA$distance_km))))
 # colnames(dens_cont_WA) <- c("distance_km", "den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27")
@@ -1615,7 +1661,8 @@ ggplot(raster_dens_WA %>% filter(depth <300), aes(distance_km, depth, col = dens
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
-  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
+  geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") +
+  scale_x_reverse() 
 
 ```
 
@@ -1829,7 +1876,8 @@ raster_sal_WA <- read.csv("Rasters/raster_sal_WA.csv")
 
 ggplot(raster_sal_WA %>% filter(depth <300), aes(distance_km, depth, col = salinity)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse()+
+  scale_x_reverse() + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Salinity (ppt)") +
@@ -1954,7 +2002,8 @@ raster_chl_WA <- read.csv("Rasters/raster_chl_WA.csv")
 
 ggplot(raster_chl_WA %>% filter(depth <300), aes(distance_km, depth, col = chlorophyll)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse() +
+  scale_x_reverse() + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Chlorophyll (ug/L)") +
@@ -2076,10 +2125,11 @@ raster_DO_WA <- read.csv("Rasters/raster_DO_WA.csv")
 
 ggplot(raster_DO_WA %>% filter(depth <300), aes(distance_km, depth, col = dissolved_oxygen)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse() +
+  scale_x_reverse() + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
-  labs(y="Depth (m)", x = "Distance (km)", col = "DO (umol/kg") +
+  labs(y="Depth (m)", x = "Distance (km)", col = "DO (umol/kg)") +
   geom_line(long_dens_cont_WA, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white") 
 
 ```
@@ -2200,7 +2250,8 @@ raster_bscat_WA <- read.csv("Rasters/raster_bscat_WA.csv")
 
 ggplot(raster_bscat_WA %>% filter(depth <300), aes(distance_km, depth, col = backscatter)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse() +
+  scale_x_reverse() + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Backscatter (/m)") +
@@ -2451,13 +2502,13 @@ interp_grid_dist_QC_shallow <- read.csv("Rasters/interp_grid_dist_QC_shallow.csv
 
 # est_var_by_dist(inter_QC_shallow, "density", 66.7, c(6.3, 8, 9.3, 10))
 
-est_var_by_dist2 <- function(df, target_var, target_dist, target_depth) {
-  data_for_dist <- df %>%
-    filter(quantile_dist == target_dist) %>%
-    arrange(depth)
-  var <- target_var
-  approx(data_for_dist$depth, data_for_dist[[var]], xout = target_depth)$y
-}
+# est_var_by_dist2 <- function(df, target_var, target_dist, target_depth) {
+#   data_for_dist <- df %>%
+#     filter(quantile_dist == target_dist) %>%
+#     arrange(depth)
+#   var <- target_var
+#   approx(data_for_dist$depth, data_for_dist[[var]], xout = target_depth)$y
+# }
 
 # interp_depth_dens_QC_shallow <- interp_grid_depth_QC_shallow %>%
 #   group_by(distance_km) %>%
@@ -2490,7 +2541,7 @@ ggplot(raster_dens_QC, aes(distance_km, depth, col = density)) +
 
 
 ```
-```{r density contour QC, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE, fig.width=8}
+```{r density contour QC, echo=FALSE, warning=FALSE, tidy = TRUE, message=FALSE}
 
 # dens_cont_QC <- as.data.frame(matrix(data=NA, ncol = 7, nrow = length(unique(raster_dens_QC$distance_km))))
 # colnames(dens_cont_QC) <- c("distance_km", "den_26", "den_26.2", "den_26.4", "den_26.6", "den_26.8", "den_27")
@@ -2604,7 +2655,8 @@ long_dens_cont_QC <- read.csv("Rasters/long_dens_cont_QC.csv")
 
 ggplot(raster_dens_QC %>% filter(depth <300), aes(distance_km, depth, col = density)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse() +
+  scale_x_reverse() + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)") +
@@ -2726,7 +2778,8 @@ raster_sal_QC <- read.csv("Rasters/raster_sal_QC.csv")
 
 ggplot(raster_sal_QC %>% filter(depth <300), aes(distance_km, depth, col = salinity)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse()  +
+  scale_x_reverse() + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Salinity (ppt)") +
@@ -3196,6 +3249,15 @@ ggplot(raster_dens_VI, aes(distance_km, depth, col = density)) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)")
 
+ggplot(raster_dens_VI %>% filter(depth<300), aes(distance_km, depth, col = density)) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_x_reverse() +
+  scale_color_viridis() +
+  theme_DOM() +
+  labs(y="Depth (m)", x = "Distance (km)", col = "Density (kg/m3)")
+
+
 
 ```
 
@@ -3436,11 +3498,13 @@ raster_sal_VI <- read.csv("Rasters/raster_sal_VI.csv")
 
 ggplot(raster_sal_VI %>% filter(depth <300), aes(distance_km, depth, col = salinity)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse()+
+  scale_x_reverse()  + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "Salinity (ppt)") +
   geom_line(long_dens_cont_VI, mapping = aes(x=distance_km, y=smooth_depth, group=isopycnal), col="white")
+
 
 ```
 
@@ -3596,7 +3660,8 @@ raster_DO_VI <- read.csv("Rasters/raster_DO_VI.csv")
 
 ggplot(raster_DO_VI %>% filter(depth <300), aes(distance_km, depth, col = dissolved_oxygen)) +
   geom_point() +
-  scale_y_reverse() + 
+  scale_y_reverse() +
+  scale_x_reverse() + 
   scale_color_binned(type = "viridis", n.breaks=10) +
   theme_DOM() +
   labs(y="Depth (m)", x = "Distance (km)", col = "DO (umol/kg)") +
